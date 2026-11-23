@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>What's the Weather?</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -403,9 +402,7 @@ const store = {
 let voiceOn = store.get('voice', true), hoverOn = store.get('hover', true), heOn = store.get('he', false), tilesOn = store.get('tiles', false);
 let voicePref = store.get('voicePref', '');   // '' = best available · 'claude:<name>' · 'b:<voiceURI>'
 let slow = store.get('slow', false);
-/* teacher mode: add ?admin to the address. Every level and stage is open, and progress isn't saved. */
-const ADMIN = new URLSearchParams(location.search).has('admin');
-let done = ADMIN ? {} : store.get('done', {});              // {"<level>-<stage>": true}
+let done = store.get('done', {});              // {"<level>-<stage>": true}
 const isDone = (lv, s) => !!done[lv + '-' + s];
 
 /* ================= the course ================= */
@@ -428,8 +425,8 @@ LEVELS.forEach(l => { if(l.type === 'part') l.name = PARTS[l.p].name; });
 const levelTitle = lv => LEVELS[lv].type === 'part' ? `Part ${LEVELS[lv].p + 1}: ${LEVELS[lv].name}` : LEVELS[lv].name;
 const stagesOf = lv => LEVELS[lv].type === 'part' ? STAGES : LEVELS[lv].decks.map(d => ({ id:'learn', deck:d, name:DECKS[d].name }));
 const levelDone = lv => stagesOf(lv).every((_, s) => isDone(lv, s));
-const levelOpen = lv => ADMIN || lv === 0 || levelDone(lv - 1);
-const unlocked = (lv, s) => ADMIN || (levelOpen(lv) && (s === 0 || isDone(lv, s - 1)));
+const levelOpen = lv => lv === 0 || levelDone(lv - 1);
+const unlocked = (lv, s) => levelOpen(lv) && (s === 0 || isDone(lv, s - 1));
 function firstOpenStage(lv){ const n = stagesOf(lv).length; for(let s = 0; s < n; s++) if(!isDone(lv, s)) return s; return 0; }
 function currentLevel(){ for(let i = 0; i < LEVELS.length; i++) if(!levelDone(i)) return i; return LEVELS.length; }
 
@@ -588,7 +585,7 @@ function startItem(speakFirst){
 }
 function finishStage(){
   const wasOpen = currentLevel();
-  done[LV + '-' + ST] = true; if(!ADMIN) store.set('done', done);
+  done[LV + '-' + ST] = true; store.set('done', done);
   S.finished = true; S.levelUp = currentLevel() > wasOpen;
   render(); yay();
   if(S.levelUp) confetti();
@@ -1192,7 +1189,7 @@ $('spSlow').onclick = () => { slow = true; store.set('slow', slow); fillVoicePan
 $('vtest').onclick = testVoice;
 
 const wake = () => {
-  $('wake').hidden = true;
+  $('wake').style.visibility = 'hidden';   // keep its space, so the page doesn't jump under the first tap
   try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch(e){}
 };
 document.addEventListener('pointerdown', wake, { once:true });
@@ -1209,20 +1206,60 @@ if(cl){
     });
     t.voices().then(v => { ttsVoices = v || []; fillVoicePanel(); }).catch(() => fillVoicePanel());
   }).catch(() => {});
-  cl.use('dictation').then(d => {
-    dict = d;
-    if(!d){ render(); return; }
-    d.onPartial(({ text }) => { if(L){ L.partial = text; liveCheck(); } });
-    d.onFinal(({ text }) => { if(L){ L.text += text; L.partial = ''; liveCheck(); } });
-    d.onState(({ state }) => {
-      if(!S || S.learn) return;
-      const was = S.listening;
-      S.listening = state === 'listening' || state === 'starting' || state === 'finishing';
-      if(state === 'idle'){ if(L) finishListening(); else if(was) render(); }
-      else if(!was && (stage() === 'repeat' || stage() === 'say')) render();
-    });
-    if(S && !S.learn) render();
-  }).catch(() => {});
+  cl.use('dictation').then(d => wireDict(d || browserDictation())).catch(() => wireDict(browserDictation()));
+} else {
+  wireDict(browserDictation());   // outside Claude (e.g. GitHub Pages): the browser's own speech recognition
+}
+function wireDict(d){
+  dict = d;
+  if(!d){ if(S && !S.learn) render(); return; }
+  d.onPartial(({ text }) => { if(L){ L.partial = text; liveCheck(); } });
+  d.onFinal(({ text }) => { if(L){ L.text += text; L.partial = ''; liveCheck(); } });
+  d.onState(({ state }) => {
+    if(!S || S.learn) return;
+    const was = S.listening;
+    S.listening = state === 'listening' || state === 'starting' || state === 'finishing';
+    if(state === 'idle'){ if(L) finishListening(); else if(was) render(); }
+    else if(!was && (stage() === 'repeat' || stage() === 'say')) render();
+  });
+  if(S && !S.learn) render();
+}
+/* Same shape as Claude's dictation, built on the browser's SpeechRecognition (Chrome, Edge, Safari). */
+function browserDictation(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return null;
+  let rec = null, on = false, cbP = () => {}, cbF = () => {}, cbS = () => {}, stopDone = null;
+  return {
+    active: () => on,
+    onPartial(f){ cbP = f; }, onFinal(f){ cbF = f; }, onState(f){ cbS = f; },
+    start(){
+      return new Promise((resolve, reject) => {
+        let started = false;
+        try { rec = new SR(); } catch(e){ reject({ code:'unavailable' }); return; }
+        rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
+        rec.onstart = () => { started = true; on = true; cbS({ state:'listening' }); resolve(); };
+        rec.onresult = e => {
+          let interim = '';
+          for(let i = e.resultIndex; i < e.results.length; i++){
+            const r = e.results[i];
+            if(r.isFinal) cbF({ text: r[0].transcript + ' ' }); else interim += r[0].transcript;
+          }
+          cbP({ text: interim });
+        };
+        rec.onerror = e => {
+          if(started) return;
+          reject({ code: (e.error === 'not-allowed' || e.error === 'service-not-allowed') ? 'not_granted' : e.error === 'aborted' ? 'stopped' : 'unavailable' });
+        };
+        rec.onend = () => {
+          const was = on; on = false;
+          if(was) cbS({ state:'idle' });
+          if(stopDone){ stopDone(); stopDone = null; }
+        };
+        try { rec.start(); } catch(e){ reject({ code:'unavailable' }); }
+      });
+    },
+    stop(){ return new Promise(res => { if(!rec || !on){ res(); return; } stopDone = res; try { rec.stop(); } catch(e){ res(); } }); }
+  };
 }
 
 /* New student: clears progress on this computer. Two taps, so it can't happen by accident. */
@@ -1235,7 +1272,7 @@ $('resetBtn').onclick = () => {
     return;
   }
   clearTimeout(resetTimer); b.classList.remove('armed'); b.textContent = '↺ New student';
-  done = {}; if(!ADMIN) store.set('done', done); startStage(0, 0, false);
+  done = {}; store.set('done', done); startStage(0, 0, false);
 };
 
 syncTools();
@@ -1243,13 +1280,3 @@ fillVoicePanel();
 buildCourse();
 { const cur = currentLevel(), lv = cur >= LEVELS.length ? 0 : cur; startStage(lv, firstOpenStage(lv), false); }
 </script>
-
-<script>
-if(new URLSearchParams(location.search).has('admin')){
-  const b=document.createElement('div');
-  b.textContent='🧑‍🏫 Teacher mode: everything is open, nothing is saved';
-  b.style.cssText='position:fixed;top:10px;right:10px;z-index:9999;background:#1d2e45;color:#cfe0ff;border:1px solid #3d5a85;border-radius:999px;padding:8px 16px;font:600 14px system-ui,sans-serif;box-shadow:0 4px 14px #0004;pointer-events:none';
-  document.body.appendChild(b);
-}
-</script>
-</body></html>
