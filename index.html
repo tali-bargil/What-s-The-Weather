@@ -601,7 +601,10 @@ function nextItem(){
   finishStage();
 }
 function solved(sentence){
-  S.solved = true; S.said = sentence; S.heardFull = false; render(); yay();
+  S.solved = true; S.said = sentence;
+  /* Listen & repeat: the child just said it, so don't play it back; Next is open right away. */
+  if(stage() === 'repeat'){ S.heardFull = true; render(); yay(); return; }
+  S.heardFull = false; render(); yay();
   setTimeout(playFull, 350);
 }
 
@@ -702,7 +705,7 @@ function startDeck(speakFirst){
 function playCard(){
   const w = S.cards[S.i], idx = S.i;
   S.playing = true; updateLearnButtons();
-  saySentence(`${w}. ${exampleOf(w)}`).then(heard => { S.playing = false; if(heard) S.heardCards.add(idx); updateLearnButtons(); });
+  saySentence(W[w].cat === 'activity' ? w : `${w}. ${exampleOf(w)}`).then(heard => { S.playing = false; if(heard) S.heardCards.add(idx); updateLearnButtons(); });
 }
 function updateLearnButtons(){
   if(!S.learn || S.phase !== 'meet') return;
@@ -723,15 +726,24 @@ function renderLearn(){
     const w = S.cards[S.i], last = S.i === S.cards.length - 1;
     $('task').textContent = 'Look. Listen. Say the word out loud.';
     $('progress').innerHTML = `<span class="count">${S.i + 1} / ${S.cards.length}</span>`;
-    body.innerHTML = `<div class="learn-wrap"><div class="flash pop">${flashPic(w)}<span class="word" id="fword">${w}</span><span class="ex">${exampleOf(w)}</span><button class="he-chip" aria-label="Hebrew">עב</button></div></div>`;
+    body.innerHTML = `<div class="learn-wrap"><div class="flash pop">${flashPic(w)}<span class="word" id="fword">${w}</span>${W[w].cat === 'activity' ? '' : `<span class="ex">${exampleOf(w)}</span>`}<button class="he-chip" aria-label="Hebrew">עב</button></div></div>`;
     hoverSay($('fword'), w);
     const chip = body.querySelector('.he-chip');
     chip.onclick = () => { const b = document.createElement('span'); b.className = 'he-bubble'; b.textContent = W[w].he; chip.parentElement.appendChild(b); setTimeout(() => b.remove(), 2500); };
-    f.innerHTML = `<span class="sayit">🗣️ Say it!</span>${S.i > 0 ? '<button class="btn" id="lback">← Back</button>' : ''}<button class="btn" id="lhear">🔊 Hear it</button><button class="btn primary" id="lnext">${last ? 'Play “Find it!” →' : 'Next →'}</button><span class="listen-note">Listen first, then tap Next.</span>`;
+    const micOn = dict && !micOff;
+    const heardLine = S.heard ? `<p class="heard" style="flex-basis:100%">I heard: <q>${S.heard.replace(/[<>&]/g, '')}</q></p>` : '';
+    const msg = S.msg ? `<p class="msg ${S.msg.oops ? 'oops' : S.msg.good ? 'good' : ''}" style="flex-basis:100%">${S.msg.text}</p>` : '';
+    const say = micOn
+      ? `<button class="btn mic ${S.listening ? 'on' : ''}" id="lmic">${S.listening ? '● Listening… tap when done' : S.saidOk ? '⭐ Say it again' : '🎤 Say it'}</button>`
+      : `<span class="sayit">🗣️ Say it!</span>`;
+    f.innerHTML = `${heardLine}${msg}${say}${S.i > 0 ? '<button class="btn" id="lback">← Back</button>' : ''}<button class="btn" id="lhear">🔊 Hear it</button><button class="btn primary" id="lnext">${last ? 'Play “Find it!” →' : 'Next →'}</button><span class="listen-note">Listen first, then tap Next.</span>`;
+    const resetCard = () => { stopListening(); S.msg = null; S.heard = ''; S.tries = 0; S.saidOk = false; S.listening = false; };
+    if($('lmic')) $('lmic').onclick = micClick;
     $('lhear').onclick = () => { if(!S.playing) playCard(); };
-    if($('lback')) $('lback').onclick = () => { S.i--; render(); playCard(); };
+    if($('lback')) $('lback').onclick = () => { resetCard(); S.i--; render(); playCard(); };
     $('lnext').onclick = () => {
       if(!S.heardCards.has(S.i)) return;
+      resetCard();
       if(!last){ S.i++; render(); playCard(); return; }
       startQuiz();
     };
@@ -874,7 +886,7 @@ function renderSay(sent){
   S.tokens.forEach(t => {
     if(typeof t === 'string'){ textSpan(sent, t); return; }
     if(free && !t.given){ const b = document.createElement('span'); b.className = 'slot static'; b.innerHTML = '<span class="q">?</span>'; sent.appendChild(b); return; }
-    picSlot(sent, t.w, 'shown', S.tries >= 2);
+    picSlot(sent, t.w, 'shown', true);
   });
   speakControls(() => saySentence(free ? exampleFor() : textOf(S.tokens)), '💡 Hint');
 }
@@ -909,6 +921,7 @@ function speakControls(hear, hearLabel){
   }
 }
 function checkSpeech(text){
+  if(S.learn) return { ok: hasWord(tokensOf(text), S.cards[S.i]) };
   const toks = tokensOf(text), p = part(), m = S.m;
   if(stage() === 'say') return p.sayCheck(m, toks);
   if(P === 1) return p.sayCheck(m, toks);
@@ -951,6 +964,12 @@ function finishListening(){
   const text = (sess.text + ' ' + sess.partial).trim();
   S.heard = text;
   const r = sess.ok || checkSpeech(text);
+  if(S.learn){
+    if(r.ok){ S.saidOk = true; good(); S.msg = { text:'⭐ Great!', good:true }; }
+    else if(!text) S.msg = { text:'I didn’t hear anything. Tap the microphone and speak.' };
+    else { S.tries = (S.tries || 0) + 1; bad(); S.msg = { text: S.tries >= 2 ? 'Good try! Tap 🔊, listen, and say it again.' : 'Almost! Try again.', oops: S.tries < 2 }; }
+    render(); return;
+  }
   if(r.ok){ solved(r.said || textOf(S.tokens)); return; }
   if(!text){ S.msg = { text:'I didn’t hear anything. Tap the microphone and speak.' }; render(); return; }
   S.tries++; bad();
@@ -1217,17 +1236,17 @@ if(cl){
 }
 function wireDict(d){
   dict = d;
-  if(!d){ if(S && !S.learn) render(); return; }
+  if(!d){ if(S) render(); return; }
   d.onPartial(({ text }) => { if(L){ L.partial = text; liveCheck(); } });
   d.onFinal(({ text }) => { if(L){ L.text += text; L.partial = ''; liveCheck(); } });
   d.onState(({ state }) => {
-    if(!S || S.learn) return;
+    if(!S || (S.learn && S.phase !== 'meet')) return;
     const was = S.listening;
     S.listening = state === 'listening' || state === 'starting' || state === 'finishing';
     if(state === 'idle'){ if(L) finishListening(); else if(was) render(); }
-    else if(!was && (stage() === 'repeat' || stage() === 'say')) render();
+    else if(!was && (S.learn || stage() === 'repeat' || stage() === 'say')) render();
   });
-  if(S && !S.learn) render();
+  if(S && (!S.learn || S.phase === 'meet')) render();
 }
 /* Same shape as Claude's dictation, built on the browser's SpeechRecognition (Chrome, Edge, Safari). */
 function browserDictation(){
