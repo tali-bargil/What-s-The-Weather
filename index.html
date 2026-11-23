@@ -50,6 +50,8 @@ h1{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,5vw,42px
 .stagebar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
 .reset{font:inherit;font-weight:700;font-size:13px;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;padding:4px}
 .reset.armed{color:var(--oops)}
+.reset.on{color:var(--focus)}
+.admin{display:flex;flex-wrap:wrap;gap:4px 10px}
 .bcol{display:inline-flex;flex-direction:column;align-items:center;gap:4px;vertical-align:middle}
 .fix{font:600 20px var(--font-display);color:var(--go);letter-spacing:.06em;line-height:1}
 .fix mark{background:var(--sun);color:var(--sun-ink);border-radius:4px;padding:0 2px}
@@ -402,7 +404,10 @@ const store = {
 let voiceOn = store.get('voice', true), hoverOn = store.get('hover', true), heOn = store.get('he', false), tilesOn = store.get('tiles', false);
 let voicePref = store.get('voicePref', '');   // '' = best available · 'claude:<name>' · 'b:<voiceURI>'
 let slow = store.get('slow', false);
-let done = store.get('done', {});              // {"<level>-<stage>": true}
+let done = store.get('done', {});
+/* Admin mode: add ?admin to the address (or #admin inside Claude) and every stop and stage opens. Not saved. */
+const adminInUrl = () => /[?&]admin(=|&|$)/i.test(location.search) || /^#admin$/i.test(location.hash);
+let teacher = adminInUrl();              // {"<level>-<stage>": true}
 const isDone = (lv, s) => !!done[lv + '-' + s];
 
 /* ================= the course ================= */
@@ -425,8 +430,8 @@ LEVELS.forEach(l => { if(l.type === 'part') l.name = PARTS[l.p].name; });
 const levelTitle = lv => LEVELS[lv].type === 'part' ? `Part ${LEVELS[lv].p + 1}: ${LEVELS[lv].name}` : LEVELS[lv].name;
 const stagesOf = lv => LEVELS[lv].type === 'part' ? STAGES : LEVELS[lv].decks.map(d => ({ id:'learn', deck:d, name:DECKS[d].name }));
 const levelDone = lv => stagesOf(lv).every((_, s) => isDone(lv, s));
-const levelOpen = lv => lv === 0 || levelDone(lv - 1);
-const unlocked = (lv, s) => levelOpen(lv) && (s === 0 || isDone(lv, s - 1));
+const levelOpen = lv => teacher || lv === 0 || levelDone(lv - 1);
+const unlocked = (lv, s) => teacher || (levelOpen(lv) && (s === 0 || isDone(lv, s - 1)));
 function firstOpenStage(lv){ const n = stagesOf(lv).length; for(let s = 0; s < n; s++) if(!isDone(lv, s)) return s; return 0; }
 function currentLevel(){ for(let i = 0; i < LEVELS.length; i++) if(!levelDone(i)) return i; return LEVELS.length; }
 
@@ -626,7 +631,7 @@ function renderCourse(){
   const at = S && S.finished && S.levelUp ? Math.min(LV + 1, LEVELS.length) : LV;
   $('marker').style.left = `${(at + 0.5) / n * 100}%`;
   $('fill').style.width = `${Math.min(cur, LEVELS.length) / (n - 1) * 100}%`;
-  $('courseCap').textContent = `You are here: ${levelTitle(LV)}`;
+  $('courseCap').textContent = `You are here: ${levelTitle(LV)}` + (teacher ? ' · Admin mode: everything is open' : '');
 }
 function confetti(){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -1261,6 +1266,8 @@ function browserDictation(){
     stop(){ return new Promise(res => { if(!rec || !on){ res(); return; } stopDone = res; try { rec.stop(); } catch(e){ res(); } }); }
   };
 }
+
+window.addEventListener('hashchange', () => { teacher = adminInUrl(); render(); });
 
 /* New student: clears progress on this computer. Two taps, so it can't happen by accident. */
 let resetTimer = null;
