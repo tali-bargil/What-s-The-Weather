@@ -1,0 +1,1245 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>What's the Weather?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+/* Layout: a sky-blue play table. Parts and stages run across the top, the sentence board sits in the middle, word cards lie below like printed cut-outs. */
+:root{
+  --sky:#e6f2fb; --sky-2:#d3e7f5; --paper:#ffffff; --ink:#1c2a3a; --muted:#53657a;
+  --line:#b9cddf; --slot:#f2f8fd; --sun:#ffc93c; --sun-ink:#4d3400;
+  --go:#22865a; --go-soft:#ddf2e6; --oops:#c3423d; --oops-soft:#fbe3e1; --focus:#2b6cd4; --shadow:rgba(20,40,70,.22);
+  --font-display:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif;
+  --font-body:"Nunito",ui-rounded,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --sky:#0d1726; --sky-2:#15243a; --paper:#1a2a42; --ink:#eef4fb; --muted:#a4b6c9;
+  --line:#3a5070; --slot:#14223a; --sun:#ffd25c; --sun-ink:#3a2700;
+  --go:#4fc78c; --go-soft:#16392a; --oops:#ff8079; --oops-soft:#3d1d1d; --focus:#8db7ff; --shadow:rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --sky:#0d1726; --sky-2:#15243a; --paper:#1a2a42; --ink:#eef4fb; --muted:#a4b6c9;
+  --line:#3a5070; --slot:#14223a; --sun:#ffd25c; --sun-ink:#3a2700;
+  --go:#4fc78c; --go-soft:#16392a; --oops:#ff8079; --oops-soft:#3d1d1d; --focus:#8db7ff; --shadow:rgba(0,0,0,.5); color-scheme:dark}
+
+body{background:var(--sky);color:var(--ink);font-family:var(--font-body);font-size:16px}
+.wrap{max-width:1040px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,5vw,42px);line-height:1;margin:0}
+.sub{margin:6px 0 0;color:var(--muted);font-weight:700}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tool{font:inherit;font-weight:800;font-size:15px;border:2px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer}
+.tool[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:var(--sun-ink)}
+.tool .he{font-family:system-ui,sans-serif}
+.tool.stop{border-color:var(--ink)}
+.wake{margin:0;font-weight:700;color:var(--muted);font-size:14px}
+
+.parts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.part{font:inherit;text-align:left;border:2px solid transparent;background:var(--sky-2);color:var(--ink);border-radius:14px;padding:9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}
+.part .n{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between;gap:6px}
+.part .t{font-family:var(--font-display);font-weight:600;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.part[aria-current="true"]{background:var(--paper);border-color:var(--ink)}
+.pips{letter-spacing:1px;color:var(--go)}
+@media (max-width:620px){.parts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.stages{display:flex;flex-wrap:wrap;gap:8px}
+.stage{font:inherit;font-weight:800;font-size:15px;border:2px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:6px 14px;cursor:pointer}
+.stage.done{color:var(--go);border-color:var(--go)}
+.stage[aria-current="step"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.stage.locked{opacity:.55;border-style:dashed;cursor:not-allowed}
+.stagebar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.reset{font:inherit;font-weight:700;font-size:13px;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;padding:4px}
+.reset.armed{color:var(--oops)}
+.bcol{display:inline-flex;flex-direction:column;align-items:center;gap:4px;vertical-align:middle}
+.fix{font:600 20px var(--font-display);color:var(--go);letter-spacing:.06em;line-height:1}
+.fix mark{background:var(--sun);color:var(--sun-ink);border-radius:4px;padding:0 2px}
+.fix.copy{color:var(--focus)}
+.fix s{color:var(--muted);font-size:15px;letter-spacing:0;margin-left:6px}
+.blank.almost{border-bottom-color:var(--sun);background:var(--go-soft)}
+.blank.copy{border-bottom-color:var(--focus)}
+.tile.hint{border-color:var(--sun);box-shadow:0 3px 0 var(--sun);background:var(--sun);color:var(--sun-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.listen-note{font-weight:800;color:var(--muted);font-size:15px}
+
+.board{background:var(--paper);border-radius:24px;padding:20px clamp(14px,3vw,32px);display:flex;flex-direction:column;gap:14px;box-shadow:0 2px 0 var(--line)}
+.board-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.task{margin:0;font-weight:800;color:var(--muted);font-size:17px}
+.progress{display:flex;gap:6px;align-items:center}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--sky-2);border:2px solid var(--line)}
+.dot.done{background:var(--sun);border-color:var(--sun)}
+.dot.now{border-color:var(--ink)}
+
+.sentence{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;font-family:var(--font-display);font-weight:600;font-size:clamp(24px,4.2vw,36px);line-height:1.25;min-height:130px;margin:0}
+.say{border-radius:8px;padding:0 3px}
+.say:hover{background:var(--sky)}
+.tight{margin-left:-12px}
+.given-word{color:var(--focus)}
+.slot{font:inherit;width:clamp(100px,16vw,136px);min-height:clamp(100px,15vw,130px);border:3px dashed var(--line);border-radius:16px;background:var(--slot);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);cursor:pointer;padding:6px;position:relative}
+.slot .q{font-size:38px;line-height:1;opacity:.55}
+.slot.ready{border-color:var(--focus)}
+.slot.over{border-color:var(--focus);background:var(--sky-2);transform:scale(1.04)}
+.slot.filled{border-style:solid;border-color:var(--go);background:var(--go-soft);cursor:default}
+.slot.given,.slot.shown{border-style:solid;border-color:var(--ink);background:var(--paper);cursor:default}
+.slot.static{cursor:default}
+.slot .pic{width:100%;aspect-ratio:220/200;border-radius:10px;overflow:hidden;display:block}
+.slot .pic svg,.card .pic svg,.mini svg{width:100%;height:100%;display:block}
+.slot .w{font-size:17px;color:var(--ink);font-weight:600;text-align:center;line-height:1.1}
+.slot .emo{font-size:46px;line-height:1.15}
+
+.blankwrap{display:inline-flex;align-items:center;gap:8px}
+.mini{width:58px;height:53px;border-radius:8px;overflow:hidden;display:inline-grid;place-items:center;background:var(--sky);font-size:34px}
+.blank{font:inherit;font-size:inherit;width:6.2ch;min-width:3ch;padding:0 6px;border:0;border-bottom:4px solid var(--ink);background:var(--slot);color:var(--ink);border-radius:8px 8px 0 0;text-align:center}
+.blank:focus{outline:none;border-bottom-color:var(--focus);background:var(--sky-2)}
+.blank.ok,.jum.ok .box{border-bottom-color:var(--go);background:var(--go-soft)}
+.blank.bad{border-bottom-color:var(--oops);background:var(--oops-soft)}
+.jum{display:inline-flex;flex-direction:column;align-items:center;gap:8px;vertical-align:middle}
+.boxes{display:flex;gap:4px}
+.box{font:inherit;font-size:.85em;width:1.25em;height:1.5em;border:0;border-bottom:4px solid var(--ink);background:var(--slot);color:var(--ink);border-radius:6px 6px 0 0;display:grid;place-items:center;padding:0;cursor:pointer}
+.tiles{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:16em}
+.tile{font:600 22px var(--font-display);width:38px;height:42px;border-radius:10px;border:2px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;box-shadow:0 3px 0 var(--line)}
+.tile:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}
+
+.heard{margin:0;font-size:18px;font-weight:700;color:var(--muted);min-height:1.4em}
+.heard q{color:var(--ink);quotes:"“" "”"}
+.feedback{min-height:52px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.msg{margin:0;font-weight:800;font-size:18px;color:var(--muted)}
+.msg.oops{color:var(--oops)}
+.msg.good{color:var(--go)}
+.btn{font:inherit;font-weight:800;font-size:17px;border-radius:999px;padding:10px 18px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.mic{background:var(--sun);border-color:var(--sun);color:var(--sun-ink);font-size:19px;padding:12px 22px}
+.btn.mic.on{background:var(--oops);border-color:var(--oops);color:#fff;animation:pulse 1.2s infinite}
+.btn.small{font-size:14px;padding:6px 12px;border-color:var(--line);color:var(--muted)}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(195,66,61,.18)}}
+.sayit{font-family:var(--font-display);font-size:24px;font-weight:700;background:var(--sun);color:var(--sun-ink);padding:8px 16px;border-radius:14px}
+.celebrate{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:20px 0}
+.celebrate .big{font-size:56px;line-height:1}
+.celebrate h2{font-family:var(--font-display);font-size:34px;margin:0}
+.celebrate p{margin:0;color:var(--muted);font-weight:700;font-size:18px}
+
+.bank-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.bank-head h2{font-family:var(--font-display);font-size:19px;margin:0;font-weight:600}
+.bank-head p{margin:0;color:var(--muted);font-weight:700;font-size:14px}
+.bank{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
+.card{position:relative;background:var(--paper);border:3px dashed var(--line);border-radius:18px;padding:8px 8px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;color:var(--ink)}
+.card:hover{border-color:var(--ink)}
+.card.selected{border-style:solid;border-color:var(--focus);box-shadow:0 0 0 3px var(--focus)}
+.card.lifting{opacity:.3}
+.card .pic{width:100%;aspect-ratio:220/200;border-radius:12px;overflow:hidden}
+.card .w{font-family:var(--font-display);font-weight:600;font-size:21px}
+.card.act .tile2{width:100%;aspect-ratio:220/200;border-radius:12px;background:var(--sky);display:grid;place-items:center;font-size:54px}
+.card.act .w{font-size:17px;text-align:center;line-height:1.15;min-height:2.3em;display:flex;align-items:center}
+.ghost{position:fixed;z-index:50;pointer-events:none;margin:0;transform:rotate(-4deg) scale(1.06);box-shadow:0 14px 28px var(--shadow);cursor:grabbing;border-style:solid;border-color:var(--ink)}
+
+.he-chip{display:none;position:absolute;top:5px;right:5px;font:700 13px system-ui,sans-serif;background:var(--ink);color:var(--paper);border:0;border-radius:8px;padding:3px 7px;cursor:pointer;z-index:2}
+body.he-on .he-chip{display:block}
+.he-bubble{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);background:var(--ink);color:var(--paper);font:700 19px system-ui,sans-serif;padding:6px 12px;border-radius:10px;white-space:nowrap;z-index:5;direction:rtl;pointer-events:none}
+
+.shake{animation:shake .42s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.pop{animation:pop .4s}
+@keyframes pop{0%{transform:scale(.8)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+[hidden]{display:none!important}
+/* course map */
+.course{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding-top:34px}
+.course .track{position:absolute;left:calc(100% / 14);right:calc(100% / 14);top:55px;height:6px;background:var(--sky-2);border-radius:3px}
+.course .fill{height:100%;width:0;background:var(--sun);border-radius:3px;transition:width 1.2s ease}
+.stn{font:inherit;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:var(--ink);z-index:1;min-width:0;padding:0}
+.stn .c{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--paper);border:3px solid var(--line);font:700 20px var(--font-display);transition:transform .3s}
+.stn.done .c{background:var(--sun);border-color:var(--sun);color:var(--sun-ink)}
+.stn.here .c{border-color:var(--ink);transform:scale(1.15)}
+.stn.locked{cursor:not-allowed}
+.stn.locked .c{opacity:.5;border-style:dashed}
+.stn.finish{cursor:default}
+.stn .l{font-size:12.5px;font-weight:800;color:var(--muted);text-align:center;line-height:1.2;max-width:100%}
+.stn.here .l{color:var(--ink)}
+.marker{position:absolute;top:0;left:7%;font-size:30px;line-height:1;transform:translateX(-50%);transition:left 1.4s cubic-bezier(.5,0,.3,1);pointer-events:none;z-index:2}
+.marker::after{content:"";}
+@media (prefers-reduced-motion:no-preference){.marker{animation:bob 2.2s ease-in-out infinite}}
+@keyframes bob{50%{translate:0 -5px}}
+.course-cap{margin:-4px 0 0;font-weight:800;color:var(--muted);text-align:center;font-size:14px}
+@media (max-width:620px){.stn .l{display:none}.stn .c{width:38px;height:38px;font-size:17px}.course .track{top:51px}}
+/* voice panel */
+.vpanel{background:var(--paper);border-radius:18px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;box-shadow:0 2px 0 var(--line)}
+.vpanel label{font-weight:800}
+.vpanel select{font:inherit;font-weight:700;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:var(--paper);color:var(--ink);max-width:100%;min-width:0}
+.seg{display:inline-flex;border:2px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{font:inherit;font-weight:800;border:0;background:transparent;color:var(--ink);padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--sun);color:var(--sun-ink)}
+.tip{flex-basis:100%;margin:0;color:var(--muted);font-weight:700;font-size:14px}
+/* learn the words */
+.board{position:relative;overflow:hidden}
+.learn-wrap{display:flex;justify-content:center}
+.flash{position:relative;width:min(300px,100%);background:var(--paper);border:3px solid var(--ink);border-radius:22px;padding:12px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.flash .pic,.flash .emo,.qopt .pic,.qopt .emo{width:100%;aspect-ratio:220/200;border-radius:14px;overflow:hidden;background:var(--sky);display:grid;place-items:center}
+.flash .emo{font-size:110px}
+.flash .pic svg,.qopt .pic svg{width:100%;height:100%;display:block}
+.flash .word{font:700 clamp(30px,6vw,42px) var(--font-display);text-align:center;line-height:1.1}
+.flash .ex{font-weight:700;color:var(--muted);font-size:18px;text-align:center}
+.count{font-weight:800;color:var(--muted)}
+.quiz{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width:620px){.quiz{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.qopt{font:inherit;background:var(--paper);border:3px dashed var(--line);border-radius:18px;padding:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ink)}
+.qopt:hover{border-color:var(--ink)}
+.qopt .emo{font-size:64px}
+.qopt .w{font:600 20px var(--font-display)}
+.qopt.right{border-style:solid;border-color:var(--go);background:var(--go-soft)}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:4}
+.confetti span{position:absolute;top:-40px;animation:fall 2.8s ease-in forwards}
+@keyframes fall{to{transform:translateY(560px) rotate(300deg);opacity:0}}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>What's the Weather?</h1>
+      <p class="sub">A weather course: learn it, build it, hear it, say it, write it.</p>
+    </div>
+    <div class="tools">
+      <button class="tool stop" id="stopBtn" hidden>■ Stop</button>
+      <button class="tool" id="voiceBtn" aria-pressed="true">🔊 Sound on</button>
+      <button class="tool" id="pickBtn" aria-expanded="false" aria-controls="vpanel">🗣️ Voice</button>
+      <button class="tool" id="hoverBtn" aria-pressed="true">👆 Read on hover</button>
+      <button class="tool" id="tilesBtn" aria-pressed="false">🔤 Letter tiles</button>
+      <button class="tool" id="heBtn" aria-pressed="false"><span class="he">עברית</span></button>
+    </div>
+  </header>
+  <p class="wake" id="wake">Click anywhere once to turn on the voice.</p>
+  <section class="vpanel" id="vpanel" hidden aria-label="Voice settings">
+    <label for="voiceSel">Voice</label>
+    <select id="voiceSel"></select>
+    <span class="seg" role="group" aria-label="Speed"><button id="spNormal" aria-pressed="true">Normal</button><button id="spSlow" aria-pressed="false">🐢 Slow</button></span>
+    <button class="btn" id="vtest">▶ Test: sunny · rainy · windy</button>
+    <p class="tip" id="vtip"></p>
+  </section>
+
+  <nav class="course" id="course" aria-label="Course map"></nav>
+  <p class="course-cap" id="courseCap"></p>
+  <div class="stagebar">
+    <nav class="stages" id="stages" aria-label="Stages"></nav>
+    <button class="reset" id="resetBtn">↺ New student</button>
+  </div>
+
+  <section class="board" aria-live="polite">
+    <div class="board-head">
+      <p class="task" id="task"></p>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div id="body"></div>
+    <div class="feedback" id="feedback"></div>
+  </section>
+
+  <section id="bankSec" hidden>
+    <div class="bank-head">
+      <h2>Cards</h2>
+      <p>Drag a card, or tap a card and then tap a box.</p>
+    </div>
+    <div class="bank" id="bank"></div>
+  </section>
+</div>
+
+<script>
+const PICS = {"sunny": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#9ed4ff\"/><line x1=\"160.0\" y1=\"96.0\" x2=\"174.0\" y2=\"96.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"153.3\" y1=\"121.0\" x2=\"165.4\" y2=\"128.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"135.0\" y1=\"139.3\" x2=\"142.0\" y2=\"151.4\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"110.0\" y1=\"146.0\" x2=\"110.0\" y2=\"160.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"85.0\" y1=\"139.3\" x2=\"78.0\" y2=\"151.4\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"66.7\" y1=\"121.0\" x2=\"54.6\" y2=\"128.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"60.0\" y1=\"96.0\" x2=\"46.0\" y2=\"96.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"66.7\" y1=\"71.0\" x2=\"54.6\" y2=\"64.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"85.0\" y1=\"52.7\" x2=\"78.0\" y2=\"40.6\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"110.0\" y1=\"46.0\" x2=\"110.0\" y2=\"32.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"135.0\" y1=\"52.7\" x2=\"142.0\" y2=\"40.6\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"153.3\" y1=\"71.0\" x2=\"165.4\" y2=\"64.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><circle cx=\"110\" cy=\"96\" r=\"42\" fill=\"#FFD23F\" stroke=\"#F5A623\" stroke-width=\"4\"/>", "cloudy": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#dfe7ee\"/><g transform=\"translate(80,80) scale(0.9)\"><g fill=\"#9aa5b1\" transform=\"translate(0,0)\"><circle cx=\"-30\" cy=\"8\" r=\"26\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"0\" cy=\"-6\" r=\"34\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"32\" cy=\"6\" r=\"28\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"-50\" cy=\"20\" r=\"18\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"52\" cy=\"20\" r=\"18\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\" stroke=\"#9aa5b1\" stroke-width=\"7\"/></g><g fill=\"#ffffff\"><circle cx=\"-30\" cy=\"8\" r=\"26\"/><circle cx=\"0\" cy=\"-6\" r=\"34\"/><circle cx=\"32\" cy=\"6\" r=\"28\"/><circle cx=\"-50\" cy=\"20\" r=\"18\"/><circle cx=\"52\" cy=\"20\" r=\"18\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\"/></g></g><g transform=\"translate(138,118) scale(1.0)\"><g fill=\"#8a96a3\" transform=\"translate(0,0)\"><circle cx=\"-30\" cy=\"8\" r=\"26\" stroke=\"#8a96a3\" stroke-width=\"7\"/><circle cx=\"0\" cy=\"-6\" r=\"34\" stroke=\"#8a96a3\" stroke-width=\"7\"/><circle cx=\"32\" cy=\"6\" r=\"28\" stroke=\"#8a96a3\" stroke-width=\"7\"/><circle cx=\"-50\" cy=\"20\" r=\"18\" stroke=\"#8a96a3\" stroke-width=\"7\"/><circle cx=\"52\" cy=\"20\" r=\"18\" stroke=\"#8a96a3\" stroke-width=\"7\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\" stroke=\"#8a96a3\" stroke-width=\"7\"/></g><g fill=\"#cfd6dd\"><circle cx=\"-30\" cy=\"8\" r=\"26\"/><circle cx=\"0\" cy=\"-6\" r=\"34\"/><circle cx=\"32\" cy=\"6\" r=\"28\"/><circle cx=\"-50\" cy=\"20\" r=\"18\"/><circle cx=\"52\" cy=\"20\" r=\"18\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\"/></g></g>", "rainy": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#c9d3dc\"/><g transform=\"translate(110,62) scale(1.0)\"><g fill=\"#78838f\" transform=\"translate(0,0)\"><circle cx=\"-30\" cy=\"8\" r=\"26\" stroke=\"#78838f\" stroke-width=\"7\"/><circle cx=\"0\" cy=\"-6\" r=\"34\" stroke=\"#78838f\" stroke-width=\"7\"/><circle cx=\"32\" cy=\"6\" r=\"28\" stroke=\"#78838f\" stroke-width=\"7\"/><circle cx=\"-50\" cy=\"20\" r=\"18\" stroke=\"#78838f\" stroke-width=\"7\"/><circle cx=\"52\" cy=\"20\" r=\"18\" stroke=\"#78838f\" stroke-width=\"7\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\" stroke=\"#78838f\" stroke-width=\"7\"/></g><g fill=\"#aab4bf\"><circle cx=\"-30\" cy=\"8\" r=\"26\"/><circle cx=\"0\" cy=\"-6\" r=\"34\"/><circle cx=\"32\" cy=\"6\" r=\"28\"/><circle cx=\"-50\" cy=\"20\" r=\"18\"/><circle cx=\"52\" cy=\"20\" r=\"18\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\"/></g></g><path transform=\"translate(70,128) scale(1.0)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(105,146) scale(1.0)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(140,128) scale(1.0)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(88,172) scale(1.0)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(124,176) scale(1.0)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(160,166) scale(1.0)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(56,166) scale(1.0)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/>", "snowy": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#d6e6f5\"/><path d=\"M0 168 Q60 150 110 164 T220 160 V200 H0Z\" fill=\"#ffffff\"/><g transform=\"translate(110,60) scale(1.0)\"><g fill=\"#9aa5b1\" transform=\"translate(0,0)\"><circle cx=\"-30\" cy=\"8\" r=\"26\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"0\" cy=\"-6\" r=\"34\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"32\" cy=\"6\" r=\"28\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"-50\" cy=\"20\" r=\"18\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"52\" cy=\"20\" r=\"18\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\" stroke=\"#9aa5b1\" stroke-width=\"7\"/></g><g fill=\"#ffffff\"><circle cx=\"-30\" cy=\"8\" r=\"26\"/><circle cx=\"0\" cy=\"-6\" r=\"34\"/><circle cx=\"32\" cy=\"6\" r=\"28\"/><circle cx=\"-50\" cy=\"20\" r=\"18\"/><circle cx=\"52\" cy=\"20\" r=\"18\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\"/></g></g><line x1=\"55.0\" y1=\"122.0\" x2=\"77.0\" y2=\"122.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"60.5\" y1=\"112.5\" x2=\"71.5\" y2=\"131.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"71.5\" y1=\"112.5\" x2=\"60.5\" y2=\"131.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"93.0\" y1=\"136.0\" x2=\"115.0\" y2=\"136.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"98.5\" y1=\"126.5\" x2=\"109.5\" y2=\"145.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"109.5\" y1=\"126.5\" x2=\"98.5\" y2=\"145.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"135.0\" y1=\"118.0\" x2=\"157.0\" y2=\"118.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"140.5\" y1=\"108.5\" x2=\"151.5\" y2=\"127.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"151.5\" y1=\"108.5\" x2=\"140.5\" y2=\"127.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"73.0\" y1=\"150.0\" x2=\"95.0\" y2=\"150.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"78.5\" y1=\"140.5\" x2=\"89.5\" y2=\"159.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"89.5\" y1=\"140.5\" x2=\"78.5\" y2=\"159.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"119.0\" y1=\"152.0\" x2=\"141.0\" y2=\"152.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"124.5\" y1=\"142.5\" x2=\"135.5\" y2=\"161.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"135.5\" y1=\"142.5\" x2=\"124.5\" y2=\"161.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"157.0\" y1=\"142.0\" x2=\"179.0\" y2=\"142.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"162.5\" y1=\"132.5\" x2=\"173.5\" y2=\"151.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"173.5\" y1=\"132.5\" x2=\"162.5\" y2=\"151.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"39.0\" y1=\"148.0\" x2=\"61.0\" y2=\"148.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"44.5\" y1=\"138.5\" x2=\"55.5\" y2=\"157.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"55.5\" y1=\"138.5\" x2=\"44.5\" y2=\"157.5\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>", "windy": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#cdeaff\"/><rect x=\"0\" y=\"168\" width=\"220\" height=\"32\" fill=\"#8fd18f\"/><g transform=\"translate(70,132) rotate(18)\"><rect x=\"-7\" y=\"-10\" width=\"14\" height=\"50\" rx=\"4\" fill=\"#8B5A2B\"/><circle cx=\"0\" cy=\"-36\" r=\"30\" fill=\"#5cb85c\"/><circle cx=\"-20\" cy=\"-22\" r=\"20\" fill=\"#5cb85c\"/><circle cx=\"20\" cy=\"-22\" r=\"20\" fill=\"#5cb85c\"/></g><path d=\"M118 70 h56 q16 0 16 -14 q0 -12 -12 -12\" stroke=\"#5f7d95\" stroke-width=\"5\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M108 98 h80 q14 0 14 12 q0 12 -12 12\" stroke=\"#5f7d95\" stroke-width=\"5\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M124 126 h44\" stroke=\"#5f7d95\" stroke-width=\"5\" fill=\"none\" stroke-linecap=\"round\"/><path transform=\"translate(186,150) rotate(30)\" d=\"M0 -10 C 8 -6, 8 6, 0 10 C -8 6, -8 -6, 0 -10Z\" fill=\"#5cb85c\"/><line transform=\"translate(186,150) rotate(30)\" x1=\"0\" y1=\"-8\" x2=\"0\" y2=\"10\" stroke=\"#8a4b12\" stroke-width=\"1.5\"/><path transform=\"translate(160,40) rotate(-20)\" d=\"M0 -10 C 8 -6, 8 6, 0 10 C -8 6, -8 -6, 0 -10Z\" fill=\"#5cb85c\"/><line transform=\"translate(160,40) rotate(-20)\" x1=\"0\" y1=\"-8\" x2=\"0\" y2=\"10\" stroke=\"#8a4b12\" stroke-width=\"1.5\"/>", "stormy": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#5c6675\"/><g transform=\"translate(110,62) scale(1.05)\"><g fill=\"#262c35\" transform=\"translate(0,0)\"><circle cx=\"-30\" cy=\"8\" r=\"26\" stroke=\"#262c35\" stroke-width=\"7\"/><circle cx=\"0\" cy=\"-6\" r=\"34\" stroke=\"#262c35\" stroke-width=\"7\"/><circle cx=\"32\" cy=\"6\" r=\"28\" stroke=\"#262c35\" stroke-width=\"7\"/><circle cx=\"-50\" cy=\"20\" r=\"18\" stroke=\"#262c35\" stroke-width=\"7\"/><circle cx=\"52\" cy=\"20\" r=\"18\" stroke=\"#262c35\" stroke-width=\"7\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\" stroke=\"#262c35\" stroke-width=\"7\"/></g><g fill=\"#3e4652\"><circle cx=\"-30\" cy=\"8\" r=\"26\"/><circle cx=\"0\" cy=\"-6\" r=\"34\"/><circle cx=\"32\" cy=\"6\" r=\"28\"/><circle cx=\"-50\" cy=\"20\" r=\"18\"/><circle cx=\"52\" cy=\"20\" r=\"18\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\"/></g></g><path transform=\"translate(104,138) scale(1.3)\" d=\"M8 -30 L-14 4 L0 4 L-8 32 L16 -6 L2 -6 Z\" fill=\"#FFD23F\" stroke=\"#E0A400\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path transform=\"translate(58,140) scale(0.9)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#8ec5ff\"/><path transform=\"translate(158,132) scale(0.9)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#8ec5ff\"/><path transform=\"translate(170,170) scale(0.9)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#8ec5ff\"/><path transform=\"translate(46,176) scale(0.9)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#8ec5ff\"/>", "foggy": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#e4e8ec\"/><g opacity=\"0.5\"><g transform=\"translate(70,128) rotate(0)\"><rect x=\"-7\" y=\"-10\" width=\"14\" height=\"50\" rx=\"4\" fill=\"#8B5A2B\"/><circle cx=\"0\" cy=\"-36\" r=\"30\" fill=\"#5cb85c\"/><circle cx=\"-20\" cy=\"-22\" r=\"20\" fill=\"#5cb85c\"/><circle cx=\"20\" cy=\"-22\" r=\"20\" fill=\"#5cb85c\"/></g><rect x=\"120\" y=\"100\" width=\"60\" height=\"60\" fill=\"#c98b6b\"/><path d=\"M112 102 L150 70 L188 102Z\" fill=\"#a85a3c\"/></g><rect x=\"20\" y=\"70\" width=\"150\" height=\"14\" rx=\"7\" fill=\"#ffffff\" opacity=\"0.92\"/><rect x=\"50\" y=\"96\" width=\"160\" height=\"14\" rx=\"7\" fill=\"#ffffff\" opacity=\"0.92\"/><rect x=\"14\" y=\"122\" width=\"170\" height=\"14\" rx=\"7\" fill=\"#ffffff\" opacity=\"0.92\"/><rect x=\"40\" y=\"148\" width=\"150\" height=\"14\" rx=\"7\" fill=\"#ffffff\" opacity=\"0.92\"/><rect x=\"24\" y=\"174\" width=\"170\" height=\"14\" rx=\"7\" fill=\"#ffffff\" opacity=\"0.92\"/>", "hot": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#ffe1c4\"/><line x1=\"208.0\" y1=\"40.0\" x2=\"222.0\" y2=\"40.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"204.2\" y1=\"54.0\" x2=\"216.4\" y2=\"61.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"194.0\" y1=\"64.2\" x2=\"201.0\" y2=\"76.4\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"180.0\" y1=\"68.0\" x2=\"180.0\" y2=\"82.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"166.0\" y1=\"64.2\" x2=\"159.0\" y2=\"76.4\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"155.8\" y1=\"54.0\" x2=\"143.6\" y2=\"61.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"152.0\" y1=\"40.0\" x2=\"138.0\" y2=\"40.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"155.8\" y1=\"26.0\" x2=\"143.6\" y2=\"19.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"166.0\" y1=\"15.8\" x2=\"159.0\" y2=\"3.6\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"180.0\" y1=\"12.0\" x2=\"180.0\" y2=\"-2.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"194.0\" y1=\"15.8\" x2=\"201.0\" y2=\"3.6\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"204.2\" y1=\"26.0\" x2=\"216.4\" y2=\"19.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><circle cx=\"180\" cy=\"40\" r=\"20\" fill=\"#FFD23F\" stroke=\"#F5A623\" stroke-width=\"4\"/><circle cx=\"90\" cy=\"110\" r=\"38\" fill=\"#ff9a6b\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><path d=\"M72 102 q6 -6 12 0 M96 102 q6 -6 12 0\" stroke=\"#3a3a3a\" stroke-width=\"3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\"/><ellipse cx=\"90\" cy=\"126\" rx=\"10\" ry=\"7\" fill=\"#7a2a1a\"/><path transform=\"translate(124,90) scale(0.9)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#6ec6ff\"/><path transform=\"translate(54,106) scale(0.7)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#6ec6ff\"/><rect x=\"169\" y=\"72\" width=\"18\" height=\"74\" rx=\"9\" fill=\"#ffffff\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><rect x=\"174\" y=\"78.0\" width=\"8\" height=\"70.0\" rx=\"4\" fill=\"#e2524a\"/><circle cx=\"178\" cy=\"154\" r=\"14\" fill=\"#e2524a\" stroke=\"#3a3a3a\" stroke-width=\"3\"/>", "warm": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#fff1c9\"/><circle cx=\"90\" cy=\"104\" r=\"38\" fill=\"#ffd27a\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><circle cx=\"77\" cy=\"96\" r=\"4\" fill=\"#3a3a3a\"/><circle cx=\"103\" cy=\"96\" r=\"4\" fill=\"#3a3a3a\"/><path d=\"M74 114 q16 16 32 0\" stroke=\"#3a3a3a\" stroke-width=\"3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\"/><circle cx=\"68\" cy=\"110\" r=\"5\" fill=\"#ff9e9e\" opacity=\"0.7\"/><circle cx=\"112\" cy=\"110\" r=\"5\" fill=\"#ff9e9e\" opacity=\"0.7\"/><rect x=\"169\" y=\"68\" width=\"18\" height=\"74\" rx=\"9\" fill=\"#ffffff\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><rect x=\"174\" y=\"95.75999999999999\" width=\"8\" height=\"48.24\" rx=\"4\" fill=\"#f5a623\"/><circle cx=\"178\" cy=\"150\" r=\"14\" fill=\"#f5a623\" stroke=\"#3a3a3a\" stroke-width=\"3\"/>", "cool": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#d9f0e6\"/><circle cx=\"90\" cy=\"98\" r=\"38\" fill=\"#ffe0b8\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><circle cx=\"77\" cy=\"90\" r=\"4\" fill=\"#3a3a3a\"/><circle cx=\"103\" cy=\"90\" r=\"4\" fill=\"#3a3a3a\"/><path d=\"M78 112 h24\" stroke=\"#3a3a3a\" stroke-width=\"3\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M54 128 q36 18 72 0 l-4 14 q-32 14 -64 0z\" fill=\"#4aa3df\" stroke=\"#3a3a3a\" stroke-width=\"2.5\"/><rect x=\"169\" y=\"68\" width=\"18\" height=\"74\" rx=\"9\" fill=\"#ffffff\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><rect x=\"174\" y=\"114.96000000000001\" width=\"8\" height=\"29.04\" rx=\"4\" fill=\"#4aa3df\"/><circle cx=\"178\" cy=\"150\" r=\"14\" fill=\"#4aa3df\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><path transform=\"translate(150,34) rotate(40)\" d=\"M0 -10 C 8 -6, 8 6, 0 10 C -8 6, -8 -6, 0 -10Z\" fill=\"#7cc576\"/><line transform=\"translate(150,34) rotate(40)\" x1=\"0\" y1=\"-8\" x2=\"0\" y2=\"10\" stroke=\"#8a4b12\" stroke-width=\"1.5\"/><path d=\"M128 56 h40 M138 70 h30\" stroke=\"#5f9fb5\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>", "cold": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#cfe6ff\"/><circle cx=\"90\" cy=\"112\" r=\"38\" fill=\"#cfe3ff\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><path d=\"M52 98 q38 -46 76 0z\" fill=\"#e2524a\" stroke=\"#3a3a3a\" stroke-width=\"2.5\"/><circle cx=\"90\" cy=\"68\" r=\"8\" fill=\"#ffffff\" stroke=\"#3a3a3a\" stroke-width=\"2.5\"/><circle cx=\"77\" cy=\"110\" r=\"4\" fill=\"#3a3a3a\"/><circle cx=\"103\" cy=\"110\" r=\"4\" fill=\"#3a3a3a\"/><path d=\"M76 130 l5 -4 l5 4 l5 -4 l5 4 l5 -4\" stroke=\"#3a3a3a\" stroke-width=\"3\" stroke-linejoin=\"round\" stroke-linecap=\"round\" fill=\"none\"/><path d=\"M38 106 l-6 6 l6 6 M142 106 l6 6 l-6 6\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" fill=\"none\" stroke-linecap=\"round\"/><rect x=\"169\" y=\"72\" width=\"18\" height=\"74\" rx=\"9\" fill=\"#ffffff\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><rect x=\"174\" y=\"134.32\" width=\"8\" height=\"13.68\" rx=\"4\" fill=\"#2f6fd6\"/><circle cx=\"178\" cy=\"154\" r=\"14\" fill=\"#2f6fd6\" stroke=\"#3a3a3a\" stroke-width=\"3\"/><line x1=\"173.0\" y1=\"32.0\" x2=\"199.0\" y2=\"32.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"179.5\" y1=\"20.7\" x2=\"192.5\" y2=\"43.3\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"192.5\" y1=\"20.7\" x2=\"179.5\" y2=\"43.3\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"141.0\" y1=\"24.0\" x2=\"159.0\" y2=\"24.0\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"145.5\" y1=\"16.2\" x2=\"154.5\" y2=\"31.8\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><line x1=\"154.5\" y1=\"16.2\" x2=\"145.5\" y2=\"31.8\" stroke=\"#5aa9e6\" stroke-width=\"3.5\" stroke-linecap=\"round\"/>", "spring": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#d7f1ff\"/><rect x=\"0\" y=\"150\" width=\"220\" height=\"50\" fill=\"#8fd18f\"/><g transform=\"translate(160,112) rotate(0)\"><rect x=\"-7\" y=\"-10\" width=\"14\" height=\"50\" rx=\"4\" fill=\"#8B5A2B\"/><circle cx=\"0\" cy=\"-36\" r=\"30\" fill=\"#9be29b\"/><circle cx=\"-20\" cy=\"-22\" r=\"20\" fill=\"#9be29b\"/><circle cx=\"20\" cy=\"-22\" r=\"20\" fill=\"#9be29b\"/><circle cx=\"-14\" cy=\"-44\" r=\"6\" fill=\"#ff9ec8\"/><circle cx=\"10\" cy=\"-50\" r=\"6\" fill=\"#ff9ec8\"/><circle cx=\"18\" cy=\"-26\" r=\"6\" fill=\"#ff9ec8\"/><circle cx=\"-22\" cy=\"-20\" r=\"6\" fill=\"#ff9ec8\"/><circle cx=\"0\" cy=\"-30\" r=\"6\" fill=\"#ff9ec8\"/></g><line x1=\"36\" y1=\"150\" x2=\"36\" y2=\"176\" stroke=\"#3c9a3c\" stroke-width=\"3.5\"/><circle cx=\"44.0\" cy=\"150.0\" r=\"6.5\" fill=\"#ff7eb6\"/><circle cx=\"38.5\" cy=\"157.6\" r=\"6.5\" fill=\"#ff7eb6\"/><circle cx=\"29.5\" cy=\"154.7\" r=\"6.5\" fill=\"#ff7eb6\"/><circle cx=\"29.5\" cy=\"145.3\" r=\"6.5\" fill=\"#ff7eb6\"/><circle cx=\"38.5\" cy=\"142.4\" r=\"6.5\" fill=\"#ff7eb6\"/><circle cx=\"36\" cy=\"150\" r=\"5\" fill=\"#FFD23F\"/><line x1=\"70\" y1=\"158\" x2=\"70\" y2=\"184\" stroke=\"#3c9a3c\" stroke-width=\"3.5\"/><circle cx=\"78.0\" cy=\"158.0\" r=\"6.5\" fill=\"#b388ff\"/><circle cx=\"72.5\" cy=\"165.6\" r=\"6.5\" fill=\"#b388ff\"/><circle cx=\"63.5\" cy=\"162.7\" r=\"6.5\" fill=\"#b388ff\"/><circle cx=\"63.5\" cy=\"153.3\" r=\"6.5\" fill=\"#b388ff\"/><circle cx=\"72.5\" cy=\"150.4\" r=\"6.5\" fill=\"#b388ff\"/><circle cx=\"70\" cy=\"158\" r=\"5\" fill=\"#FFD23F\"/><line x1=\"104\" y1=\"152\" x2=\"104\" y2=\"178\" stroke=\"#3c9a3c\" stroke-width=\"3.5\"/><circle cx=\"112.0\" cy=\"152.0\" r=\"6.5\" fill=\"#ffb347\"/><circle cx=\"106.5\" cy=\"159.6\" r=\"6.5\" fill=\"#ffb347\"/><circle cx=\"97.5\" cy=\"156.7\" r=\"6.5\" fill=\"#ffb347\"/><circle cx=\"97.5\" cy=\"147.3\" r=\"6.5\" fill=\"#ffb347\"/><circle cx=\"106.5\" cy=\"144.4\" r=\"6.5\" fill=\"#ffb347\"/><circle cx=\"104\" cy=\"152\" r=\"5\" fill=\"#FFD23F\"/><g transform=\"translate(52,46) scale(0.55)\"><g fill=\"#9aa5b1\" transform=\"translate(0,0)\"><circle cx=\"-30\" cy=\"8\" r=\"26\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"0\" cy=\"-6\" r=\"34\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"32\" cy=\"6\" r=\"28\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"-50\" cy=\"20\" r=\"18\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><circle cx=\"52\" cy=\"20\" r=\"18\" stroke=\"#9aa5b1\" stroke-width=\"7\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\" stroke=\"#9aa5b1\" stroke-width=\"7\"/></g><g fill=\"#ffffff\"><circle cx=\"-30\" cy=\"8\" r=\"26\"/><circle cx=\"0\" cy=\"-6\" r=\"34\"/><circle cx=\"32\" cy=\"6\" r=\"28\"/><circle cx=\"-50\" cy=\"20\" r=\"18\"/><circle cx=\"52\" cy=\"20\" r=\"18\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\"/></g></g><circle cx=\"112\" cy=\"34\" r=\"14\" fill=\"#FFD23F\" stroke=\"#F5A623\" stroke-width=\"4\"/>", "summer": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#8fd0ff\"/><line x1=\"202.0\" y1=\"46.0\" x2=\"216.0\" y2=\"46.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"197.7\" y1=\"62.0\" x2=\"209.8\" y2=\"69.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"186.0\" y1=\"73.7\" x2=\"193.0\" y2=\"85.8\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"170.0\" y1=\"78.0\" x2=\"170.0\" y2=\"92.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"154.0\" y1=\"73.7\" x2=\"147.0\" y2=\"85.8\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"142.3\" y1=\"62.0\" x2=\"130.2\" y2=\"69.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"138.0\" y1=\"46.0\" x2=\"124.0\" y2=\"46.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"142.3\" y1=\"30.0\" x2=\"130.2\" y2=\"23.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"154.0\" y1=\"18.3\" x2=\"147.0\" y2=\"6.2\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"170.0\" y1=\"14.0\" x2=\"170.0\" y2=\"0.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"186.0\" y1=\"18.3\" x2=\"193.0\" y2=\"6.2\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><line x1=\"197.7\" y1=\"30.0\" x2=\"209.8\" y2=\"23.0\" stroke=\"#F5A623\" stroke-width=\"6\" stroke-linecap=\"round\"/><circle cx=\"170\" cy=\"46\" r=\"24\" fill=\"#FFD23F\" stroke=\"#F5A623\" stroke-width=\"4\"/><path d=\"M0 132 Q55 122 110 132 T220 132 V160 H0Z\" fill=\"#3b9be0\"/><rect x=\"0\" y=\"156\" width=\"220\" height=\"44\" fill=\"#f6dc9b\"/><path d=\"M30 132 A40 34 0 0 1 110 132 q-10 -8 -20 0 q-10 -8 -20 0 q-10 -8 -20 0 q-10 -8 -20 0z\" fill=\"#ff6b6b\" stroke=\"#3a3a3a\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M70 130 v44 q0 10 -10 10 q-8 0 -8 -8\" stroke=\"#3a3a3a\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M140 120 q10 -8 20 0 q10 -8 20 0\" stroke=\"#ffffff\" stroke-width=\"3\" fill=\"none\"/>", "autumn": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#ffe9cc\"/><rect x=\"0\" y=\"160\" width=\"220\" height=\"40\" fill=\"#d9b277\"/><g transform=\"translate(100,122) rotate(0)\"><rect x=\"-7\" y=\"-10\" width=\"14\" height=\"50\" rx=\"4\" fill=\"#8B5A2B\"/><circle cx=\"0\" cy=\"-36\" r=\"30\" fill=\"#f08a24\"/><circle cx=\"-20\" cy=\"-22\" r=\"20\" fill=\"#f08a24\"/><circle cx=\"20\" cy=\"-22\" r=\"20\" fill=\"#f08a24\"/><circle cx=\"-16\" cy=\"-44\" r=\"6\" fill=\"#d9481c\"/><circle cx=\"12\" cy=\"-52\" r=\"6\" fill=\"#ffc93c\"/><circle cx=\"20\" cy=\"-26\" r=\"6\" fill=\"#d9481c\"/><circle cx=\"-22\" cy=\"-20\" r=\"6\" fill=\"#ffc93c\"/></g><path transform=\"translate(168,70) rotate(30)\" d=\"M0 -10 C 8 -6, 8 6, 0 10 C -8 6, -8 -6, 0 -10Z\" fill=\"#d9481c\"/><line transform=\"translate(168,70) rotate(30)\" x1=\"0\" y1=\"-8\" x2=\"0\" y2=\"10\" stroke=\"#8a4b12\" stroke-width=\"1.5\"/><path transform=\"translate(186,116) rotate(-40)\" d=\"M0 -10 C 8 -6, 8 6, 0 10 C -8 6, -8 -6, 0 -10Z\" fill=\"#ffc93c\"/><line transform=\"translate(186,116) rotate(-40)\" x1=\"0\" y1=\"-8\" x2=\"0\" y2=\"10\" stroke=\"#8a4b12\" stroke-width=\"1.5\"/><path transform=\"translate(40,140) rotate(60)\" d=\"M0 -10 C 8 -6, 8 6, 0 10 C -8 6, -8 -6, 0 -10Z\" fill=\"#f08a24\"/><line transform=\"translate(40,140) rotate(60)\" x1=\"0\" y1=\"-8\" x2=\"0\" y2=\"10\" stroke=\"#8a4b12\" stroke-width=\"1.5\"/><path transform=\"translate(160,168) rotate(10)\" d=\"M0 -10 C 8 -6, 8 6, 0 10 C -8 6, -8 -6, 0 -10Z\" fill=\"#d9481c\"/><line transform=\"translate(160,168) rotate(10)\" x1=\"0\" y1=\"-8\" x2=\"0\" y2=\"10\" stroke=\"#8a4b12\" stroke-width=\"1.5\"/><path transform=\"translate(60,174) rotate(-30)\" d=\"M0 -10 C 8 -6, 8 6, 0 10 C -8 6, -8 -6, 0 -10Z\" fill=\"#ffc93c\"/><line transform=\"translate(60,174) rotate(-30)\" x1=\"0\" y1=\"-8\" x2=\"0\" y2=\"10\" stroke=\"#8a4b12\" stroke-width=\"1.5\"/>", "winter": "<rect x=\"0\" y=\"0\" width=\"220\" height=\"200\" rx=\"14\" fill=\"#c4ced8\"/><path d=\"M120 150 L170 70 L220 150Z\" fill=\"#8a96a3\"/><path d=\"M158 90 L170 70 L182 90 L176 86 L170 92 L164 86Z\" fill=\"#ffffff\"/><rect x=\"0\" y=\"150\" width=\"220\" height=\"50\" fill=\"#9aa5b1\"/><ellipse cx=\"160\" cy=\"178\" rx=\"34\" ry=\"7\" fill=\"#6f9fd0\"/><g transform=\"translate(80,48) scale(0.75)\"><g fill=\"#78838f\" transform=\"translate(0,0)\"><circle cx=\"-30\" cy=\"8\" r=\"26\" stroke=\"#78838f\" stroke-width=\"7\"/><circle cx=\"0\" cy=\"-6\" r=\"34\" stroke=\"#78838f\" stroke-width=\"7\"/><circle cx=\"32\" cy=\"6\" r=\"28\" stroke=\"#78838f\" stroke-width=\"7\"/><circle cx=\"-50\" cy=\"20\" r=\"18\" stroke=\"#78838f\" stroke-width=\"7\"/><circle cx=\"52\" cy=\"20\" r=\"18\" stroke=\"#78838f\" stroke-width=\"7\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\" stroke=\"#78838f\" stroke-width=\"7\"/></g><g fill=\"#aab4bf\"><circle cx=\"-30\" cy=\"8\" r=\"26\"/><circle cx=\"0\" cy=\"-6\" r=\"34\"/><circle cx=\"32\" cy=\"6\" r=\"28\"/><circle cx=\"-50\" cy=\"20\" r=\"18\"/><circle cx=\"52\" cy=\"20\" r=\"18\"/><rect x=\"-62\" y=\"12\" width=\"124\" height=\"26\" rx=\"13\"/></g></g><path transform=\"translate(56,90) scale(0.8)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(84,100) scale(0.8)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(110,88) scale(0.8)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path transform=\"translate(132,104) scale(0.8)\" d=\"M0 -14 C 6 -4, 10 2, 10 6 A10 10 0 0 1 -10 6 C -10 2, -6 -4, 0 -14Z\" fill=\"#3B8BEB\"/><path d=\"M30 136 A40 34 0 0 1 110 136 q-10 -8 -20 0 q-10 -8 -20 0 q-10 -8 -20 0 q-10 -8 -20 0z\" fill=\"#3b8beb\" stroke=\"#3a3a3a\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M70 134 v44 q0 10 -10 10 q-8 0 -8 -8\" stroke=\"#3a3a3a\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\"/>"};
+
+/* ================= words ================= */
+const W = {
+  spring:{cat:'season',he:'אביב'}, summer:{cat:'season',he:'קיץ'}, autumn:{cat:'season',he:'סתיו'}, winter:{cat:'season',he:'חורף'},
+  sunny:{cat:'weather',he:'שמשי'}, cloudy:{cat:'weather',he:'מעונן'}, rainy:{cat:'weather',he:'גשום'}, snowy:{cat:'weather',he:'יורד שלג'},
+  windy:{cat:'weather',he:'יש רוח'}, stormy:{cat:'weather',he:'סוער'}, foggy:{cat:'weather',he:'ערפילי'},
+  hot:{cat:'temp',he:'חם'}, warm:{cat:'temp',he:'חמים'}, cool:{cat:'temp',he:'קריר'}, cold:{cat:'temp',he:'קר'}
+};
+/* phrase, picture, Hebrew, key word (for listening and writing), weather it fits */
+const ACTS = [
+  ['go to the beach','🏖️','ללכת לים','beach',['sunny','hot']],
+  ['go to the pool','🏊','ללכת לבריכה','pool',['sunny','hot']],
+  ['swim in the sea','🌊','לשחות בים','sea',['sunny','hot']],
+  ['eat ice cream','🍦','לאכול גלידה','cream',['sunny','hot']],
+  ['wear sunglasses','🕶️','להרכיב משקפי שמש','sunglasses',['sunny','hot']],
+  ['ride my bike','🚲','לרכוב על האופניים','bike',['sunny','cloudy']],
+  ['play soccer','⚽','לשחק כדורגל','soccer',['sunny','cloudy']],
+  ['play basketball','🏀','לשחק כדורסל','basketball',['sunny','cloudy']],
+  ['go to the park','🛝','ללכת לגן השעשועים','park',['sunny','cloudy']],
+  ['have a picnic','🧺','לעשות פיקניק','picnic',['sunny','cloudy']],
+  ['go for a walk','🚶','לצאת להליכה','walk',['sunny','cloudy']],
+  ['visit my grandma','👵','לבקר את סבתא','grandma',['sunny','cloudy','rainy','windy','cold']],
+  ['stay home','🏠','להישאר בבית','home',['rainy','windy','cold','snowy','hot']],
+  ['watch TV','📺','לראות טלוויזיה','tv',['rainy','windy','cold']],
+  ['read a book','📖','לקרוא ספר','book',['rainy','windy','cold','cloudy']],
+  ['play board games','🎲','לשחק במשחקי קופסה','board',['rainy','windy','cold']],
+  ['play computer games','🎮','לשחק במחשב','computer',['rainy','windy','cold','hot']],
+  ['draw pictures','🖍️','לצייר ציורים','draw',['rainy','windy','cold']],
+  ['bake a cake','🎂','לאפות עוגה','cake',['rainy','cold']],
+  ['drink hot chocolate','☕','לשתות שוקו חם','chocolate',['rainy','cold','snowy']],
+  ['drink tea','🍵','לשתות תה','tea',['rainy','cold','snowy','cloudy']],
+  ['eat soup','🍲','לאכול מרק','soup',['rainy','cold','snowy']],
+  ['sit under a blanket','🛋️','לשבת מתחת לשמיכה','blanket',['rainy','cold','snowy']],
+  ['jump in puddles','👢','לקפוץ בשלוליות','puddles',['rainy']],
+  ['wear a coat','🧥','ללבוש מעיל','coat',['windy','cold','snowy','rainy']],
+  ['fly a kite','🪁','להעיף עפיפון','kite',['windy']],
+  ['build a snowman','⛄','לבנות איש שלג','snowman',['snowy']],
+  ['throw snowballs','❄️','לזרוק כדורי שלג','snowballs',['snowy']]
+];
+ACTS.forEach(([w,e,h,k,f]) => { W[w] = {cat:'activity', emoji:e, he:h, key:k, fits:f}; });
+const ACT_IDS = ACTS.map(a => a[0]);
+
+const SEASON_WORDS = {
+  summer:['sunny','hot','warm','cloudy'],
+  winter:['rainy','stormy','cold','cool','cloudy','windy','snowy'],
+  autumn:['windy','rainy','cloudy','cool','warm'],
+  spring:['sunny','warm','cool','windy','rainy']
+};
+const always = (s, w) => (s === 'summer' && w === 'hot') || (s === 'winter' && w === 'cold');
+const TEMP_RANGE = { summer:['hot','warm'], winter:['cool','cold'], spring:['hot','warm','cool'], autumn:['hot','warm','cool'] };
+const RANK = { hot:3, warm:2, cool:1, cold:0 };
+const TEMPS = ['hot','warm','cool','cold'];
+const BANK_WORDS = ['sunny','cloudy','rainy','snowy','windy','stormy','hot','warm','cool','cold'];
+
+/* ================= helpers ================= */
+const $ = id => document.getElementById(id);
+const shuffle = a => { a = a.slice(); for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = (a, n) => shuffle(a).slice(0, n);
+const pic = id => `<svg viewBox="0 0 220 200" aria-hidden="true">${PICS[id]}</svg>`;
+const slot = (k, w, given) => ({ k, w, given: !!given });
+const textOf = tokens => tokens.map(t => typeof t === 'string' ? t : t.w).join(' ').replace(/ \./g, '.');
+function tokensOf(s){ return s.toLowerCase().replace(/[^a-z\s']/g, ' ').split(/\s+/).filter(Boolean); }
+function lev(a, b){
+  const m = a.length, n = b.length; if(Math.abs(m - n) > 1) return 2;
+  const d = Array.from({length:m + 1}, (_, i) => [i]); for(let j = 1; j <= n; j++) d[0][j] = j;
+  for(let i = 1; i <= m; i++) for(let j = 1; j <= n; j++) d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[m][n];
+}
+function hasWord(toks, w){
+  const t = W[w] && W[w].cat === 'activity' ? W[w].key : w;
+  return toks.some(x => x === t || (t === 'tv' && x === 'television') || (t.length >= 5 && lev(x, t) <= 1));
+}
+function tempsIn(toks){ return toks.filter(x => TEMPS.includes(x)); }
+
+/* ================= the four parts ================= */
+const PARTS = [
+  { name:'Seasons',
+    models:[
+      {s:'summer',w:['sunny','hot']}, {s:'winter',w:['stormy','cold']}, {s:'summer',w:['cloudy'],some:1},
+      {s:'autumn',w:['windy']}, {s:'autumn',w:['rainy'],some:1}, {s:'winter',w:['snowy'],some:1},
+      {s:'spring',w:['sunny','warm']}, {s:'winter',w:['rainy','cold']}, {s:'autumn',w:['cool','windy']}
+    ],
+    frame(m){ const t = ['In the', slot('s', m.s, 1), m.some ? 'it is sometimes' : 'it is', slot('a', m.w[0])]; if(m.w[1]) t.push('and', slot('b', m.w[1])); t.push('.'); return t; },
+    fits(m, k, w, filled){ return SEASON_WORDS[m.s].includes(w) && !(m.some && always(m.s, w)) && !Object.keys(filled).some(kk => kk !== k && filled[kk] === w); },
+    why(m, w){ return m.some && always(m.s, w) ? `In the ${m.s} it is always ${w}, not sometimes! Try another card.` : `Is it ${w} in the ${m.s}? Try another card!`; },
+    bank(m){ const ok = SEASON_WORDS[m.s]; return shuffle(pick(ok, 4).concat(pick(BANK_WORDS.filter(x => !ok.includes(x)), 2))); },
+    keys(m){ return [m.s, ...m.w]; },
+    sayCheck(m, toks){ return { ok: this.keys(m).every(w => hasWord(toks, w)), said: textOf(this.frame(m)) }; }
+  },
+  { name:'Day & night', reuse:true,
+    models:[
+      {s:'summer',d:'hot',n:'warm'}, {s:'summer',d:'hot',n:'hot'}, {s:'winter',d:'cool',n:'cold'},
+      {s:'winter',d:'cold',n:'cold'}, {s:'spring',d:'warm',n:'cool'}, {s:'autumn',d:'warm',n:'cool'},
+      {s:'spring',d:'hot',n:'warm'}, {s:'autumn',d:'hot',n:'warm'}
+    ],
+    frame(m){ return ['In the', slot('s', m.s, 1), 'it is', slot('d', m.d), 'in the daytime and', slot('n', m.n), 'at night.']; },
+    fits(m, k, w, filled){
+      if(!TEMP_RANGE[m.s].includes(w)) return false;
+      if(k === 'd') return !filled.n || RANK[filled.n] <= RANK[w];
+      return !filled.d || RANK[w] <= RANK[filled.d];
+    },
+    why(m, w){ return TEMP_RANGE[m.s].includes(w) ? 'Nights are not warmer than days. Try again!' : `Is it ${w} in the ${m.s}? Try again!`; },
+    bank(){ return TEMPS.slice(); },
+    keys(m){ return [m.s, m.d, m.n]; },
+    sayCheck(m, toks){ const t = tempsIn(toks); return { ok: hasWord(toks, m.s) && t.length >= 2 && t[0] === m.d && t[1] === m.n, said: textOf(this.frame(m)) }; }
+  },
+  { name:'I like the…', free:true,
+    models:[
+      {s:'summer',w:'hot'}, {s:'summer',w:'sunny'}, {s:'winter',w:'rainy'}, {s:'winter',w:'snowy'}, {s:'winter',w:'cold'},
+      {s:'spring',w:'warm'}, {s:'spring',w:'sunny'}, {s:'autumn',w:'windy'}, {s:'autumn',w:'cool'}
+    ],
+    frame(m){ return ['I like the', slot('s', m.s, 1), 'because it is', slot('a', m.w), '.']; },
+    fits(m, k, w){ return SEASON_WORDS[m.s].includes(w); },
+    why(m, w){ return `Is it ${w} in the ${m.s}? Try another card!`; },
+    bank(m){ const ok = SEASON_WORDS[m.s]; return shuffle(pick(ok, 4).concat(pick(BANK_WORDS.filter(x => !ok.includes(x)), 2))); },
+    keys(m){ return [m.s, m.w]; },
+    sayCheck(m, toks){
+      if(!hasWord(toks, m.s)) return { ok:false };
+      const w = SEASON_WORDS[m.s].find(x => hasWord(toks, x));
+      if(w) return { ok:true, said:`I like the ${m.s} because it is ${w}.` };
+      const wrong = BANK_WORDS.find(x => hasWord(toks, x));
+      return { ok:false, hint: wrong ? `Is it ${wrong} in the ${m.s}?` : null };
+    }
+  },
+  { name:'When it is…', free:true,
+    models:[
+      {w:'sunny',a:'go to the beach'}, {w:'hot',a:'eat ice cream'}, {w:'rainy',a:'read a book'}, {w:'rainy',a:'jump in puddles'},
+      {w:'windy',a:'fly a kite'}, {w:'cold',a:'drink hot chocolate'}, {w:'snowy',a:'build a snowman'}, {w:'cloudy',a:'play soccer'}
+    ],
+    frame(m){ return ['When it is', slot('w', m.w, 1), 'I like to', slot('a', m.a), '.']; },
+    fits(m, k, w){ return W[w].cat === 'activity' && W[w].fits.includes(m.w); },
+    why(m, w){ return `Do you ${w} when it is ${m.w}? Try another card!`; },
+    bank(m){ const ok = ACT_IDS.filter(a => W[a].fits.includes(m.w)); return shuffle(pick(ok, 4).concat(pick(ACT_IDS.filter(a => !ok.includes(a)), 2))); },
+    keys(m){ return [m.w, m.a]; },
+    sayCheck(m, toks){
+      if(!hasWord(toks, m.w)) return { ok:false };
+      const a = ACT_IDS.find(x => W[x].fits.includes(m.w) && hasWord(toks, x));
+      if(a) return { ok:true, said:`When it is ${m.w} I like to ${a}.` };
+      const wrong = ACT_IDS.find(x => hasWord(toks, x));
+      return { ok:false, hint: wrong ? `Do you ${wrong} when it is ${m.w}?` : null };
+    }
+  }
+];
+const STAGES = [
+  { id:'build',  name:'🧩 Build it',          task:'Drag the cards to finish the sentence.' },
+  { id:'repeat', name:'👂 Listen & repeat',   task:'Listen to the sentence. Then say it.' },
+  { id:'say',    name:'🗣️ Say it yourself',   task:'Look at the pictures and say the sentence.' },
+  { id:'write',  name:'✏️ Write it',          task:'Listen and write the missing words.' }
+];
+const PER_STAGE = 5;
+
+/* ================= prefs + progress ================= */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('ww3-' + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem('ww3-' + k, JSON.stringify(v)); } catch(e){} }
+};
+let voiceOn = store.get('voice', true), hoverOn = store.get('hover', true), heOn = store.get('he', false), tilesOn = store.get('tiles', false);
+let voicePref = store.get('voicePref', '');   // '' = best available · 'claude:<name>' · 'b:<voiceURI>'
+let slow = store.get('slow', false);
+let done = store.get('done', {});              // {"<level>-<stage>": true}
+const isDone = (lv, s) => !!done[lv + '-' + s];
+
+/* ================= the course ================= */
+const DECKS = {
+  seasons:{ name:'🌸 Seasons', words:['spring','summer','autumn','winter'] },
+  weather:{ name:'🌦️ Weather', words:['sunny','cloudy','rainy','snowy','windy','stormy'] },
+  temps:  { name:'🌡️ Hot & cold', words:['hot','warm','cool','cold'] },
+  outside:{ name:'⚽ Outside', words:['go to the beach','go to the pool','swim in the sea','eat ice cream','wear sunglasses','ride my bike','play soccer','play basketball','go to the park','have a picnic','go for a walk','fly a kite','jump in puddles','build a snowman','throw snowballs'] },
+  inside: { name:'🏠 Inside', words:['stay home','watch TV','read a book','play board games','play computer games','draw pictures','bake a cake','drink hot chocolate','drink tea','eat soup','sit under a blanket','wear a coat','visit my grandma'] }
+};
+const SEASON_EX = { spring:'In the spring there are flowers.', summer:'In the summer it is hot.', autumn:'In the autumn the leaves fall.', winter:'In the winter it is cold.' };
+const exampleOf = w => W[w].cat === 'season' ? SEASON_EX[w] : W[w].cat === 'activity' ? `I like to ${w}.` : `It’s ${w}.`;
+const LEVELS = [
+  { type:'learn', icon:'📚', name:'Learn the words', decks:['seasons','weather','temps'] },
+  { type:'part', p:0, icon:'1' }, { type:'part', p:1, icon:'2' }, { type:'part', p:2, icon:'3' },
+  { type:'learn', icon:'📚', name:'Things to do', decks:['outside','inside'] },
+  { type:'part', p:3, icon:'4' }
+];
+LEVELS.forEach(l => { if(l.type === 'part') l.name = PARTS[l.p].name; });
+const levelTitle = lv => LEVELS[lv].type === 'part' ? `Part ${LEVELS[lv].p + 1}: ${LEVELS[lv].name}` : LEVELS[lv].name;
+const stagesOf = lv => LEVELS[lv].type === 'part' ? STAGES : LEVELS[lv].decks.map(d => ({ id:'learn', deck:d, name:DECKS[d].name }));
+const levelDone = lv => stagesOf(lv).every((_, s) => isDone(lv, s));
+const levelOpen = lv => lv === 0 || levelDone(lv - 1);
+const unlocked = (lv, s) => levelOpen(lv) && (s === 0 || isDone(lv, s - 1));
+function firstOpenStage(lv){ const n = stagesOf(lv).length; for(let s = 0; s < n; s++) if(!isDone(lv, s)) return s; return 0; }
+function currentLevel(){ for(let i = 0; i < LEVELS.length; i++) if(!levelDone(i)) return i; return LEVELS.length; }
+
+/* ================= voice ================= */
+const cl = window.claude && typeof window.claude.use === 'function' ? window.claude : null;
+let tts = null, ttsBlocked = false, ttsVoices = [], dict = null, micOff = false, micLangTried = false;
+const canBrowserSpeak = 'speechSynthesis' in window;
+const CLAUDE_VOICE_NAMES = { buttery:'Buttery', airy:'Airy', glassy:'Glassy', rounded:'Rounded' };
+const STAR = /natural|neural|premium|enhanced|google us english|google uk english female|samantha|\bava\b|aria|jenny/i;
+const FEMALE = /female|samantha|ava|aria|jenny|zira|karen|moira|tessa|serena|susan|allison|victoria|fiona|libby|sonia|natasha|emma|olivia/i;
+let bVoices = [];
+function loadBrowserVoices(){
+  if(!canBrowserSpeak) return;
+  bVoices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang))
+    .sort((a, b) => (STAR.test(b.name) - STAR.test(a.name)) || (FEMALE.test(b.name) - FEMALE.test(a.name)) || ((b.lang === 'en-US') - (a.lang === 'en-US')) || a.name.localeCompare(b.name));
+  fillVoicePanel();
+}
+if(canBrowserSpeak){ loadBrowserVoices(); speechSynthesis.onvoiceschanged = loadBrowserVoices; }
+function browserVoice(){
+  if(voicePref.startsWith('b:')){ const v = bVoices.find(v => v.voiceURI === voicePref.slice(2)); if(v) return v; }
+  return bVoices[0] || null;
+}
+const rate = () => slow ? 0.7 : 0.88;
+const useClaude = () => tts && !ttsBlocked && !voicePref.startsWith('b:');
+const claudeVoice = () => voicePref.startsWith('claude:') ? voicePref.slice(7) : undefined;
+function utter(text){
+  const u = new SpeechSynthesisUtterance(text); u.lang = 'en-US';
+  const v = browserVoice(); if(v){ u.voice = v; u.lang = v.lang; }
+  u.rate = rate(); return u;
+}
+function browserSay(text){
+  if(!voiceOn || ttsBlocked || !canBrowserSpeak) return;
+  speechSynthesis.cancel(); speechSynthesis.speak(utter(text));
+}
+/* Single words on hover: always the device voice (quick, many per minute).
+   Sentences and word cards: the chosen voice. saySentence resolves true once it was heard in full
+   (or when sound is off, so nobody gets stuck). */
+const sayWord = w => browserSay(w);
+function browserSayFull(text){
+  return new Promise(resolve => {
+    if(!canBrowserSpeak) return resolve(true);
+    speechSynthesis.cancel();
+    const u = utter(text);
+    let settled = false; const fin = v => { if(!settled){ settled = true; clearTimeout(safety); resolve(v); } };
+    const safety = setTimeout(() => fin(true), 2500 + text.split(' ').length * 600 / rate());
+    u.onend = () => fin(true);
+    u.onerror = e => fin(!(e.error === 'interrupted' || e.error === 'canceled'));
+    speechSynthesis.speak(u);
+  });
+}
+async function saySentence(text){
+  if(!voiceOn || ttsBlocked) return true;
+  if(dict && dict.active()) return false;
+  if(useClaude()){
+    if(canBrowserSpeak) speechSynthesis.cancel();
+    try { await tts.speak(text, { voice: claudeVoice(), rate: rate(), language:'en' }); return true; }
+    catch(e){
+      if(e.code === 'not_granted'){ ttsBlocked = true; return true; }
+      if(e.code === 'stopped') return false;
+    }
+  }
+  return browserSayFull(text);
+}
+/* After a sentence is solved: play it in full; Next unlocks only once it has been heard. */
+function playFull(){
+  if(!S.solved) return;
+  S.playing = true; renderNextState();
+  saySentence(S.said).then(heard => { S.playing = false; if(heard) S.heardFull = true; renderNextState(); });
+}
+function nextControls(){
+  const ready = S.heardFull;
+  return `<button class="btn" id="hear">${S.playing ? '🔊 Listening…' : '🔊 Hear it again'}</button>`
+    + `<button class="btn primary" id="next" ${ready ? '' : 'disabled'}>Next →</button>`
+    + (ready ? '' : `<span class="listen-note">${S.playing ? 'Listen to the whole sentence…' : 'Tap 🔊 and listen to the whole sentence.'}</span>`);
+}
+function wireNext(){
+  if($('hear')) $('hear').onclick = () => { if(!S.playing) playFull(); };
+  if($('next')) $('next').onclick = () => { if(S.heardFull) nextItem(); };
+}
+function renderNextState(){
+  const h = $('hear'), n = $('next'), note = document.querySelector('.listen-note');
+  if(!h || !n){ render(); return; }
+  h.textContent = S.playing ? '🔊 Listening…' : '🔊 Hear it again';
+  n.disabled = !S.heardFull;
+  if(S.heardFull && note) note.remove();
+  else if(note) note.textContent = S.playing ? 'Listen to the whole sentence…' : 'Tap 🔊 and listen to the whole sentence.';
+}
+function stopVoice(){ if(tts) tts.stop().catch(() => {}); if(canBrowserSpeak) speechSynthesis.cancel(); }
+
+/* ---------- voice panel ---------- */
+function flag(l){ return /US/i.test(l) ? '🇺🇸' : /GB/i.test(l) ? '🇬🇧' : /AU/i.test(l) ? '🇦🇺' : /IE/i.test(l) ? '🇮🇪' : /IN/i.test(l) ? '🇮🇳' : /CA/i.test(l) ? '🇨🇦' : /ZA/i.test(l) ? '🇿🇦' : /NZ/i.test(l) ? '🇳🇿' : '🌐'; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+function fillVoicePanel(){
+  const sel = $('voiceSel'); if(!sel) return;
+  let html = '';
+  if(tts && !ttsBlocked){
+    const names = ttsVoices.length ? ttsVoices : Object.keys(CLAUDE_VOICE_NAMES);
+    html += `<optgroup label="Claude voices (clearest)">` + names.map(n => `<option value="claude:${n}">★ ${CLAUDE_VOICE_NAMES[n] || n}</option>`).join('') + `</optgroup>`;
+  }
+  if(bVoices.length){
+    html += `<optgroup label="Voices on this device">` + bVoices.map(v =>
+      `<option value="b:${esc(v.voiceURI)}">${STAR.test(v.name) ? '★ ' : ''}${flag(v.lang)} ${esc(v.name.replace(/^(Microsoft|Google|Apple)\s*/, '').replace(/\s*Online.*$/, '').replace(/\s*-\s*English.*$/, ''))}</option>`).join('') + `</optgroup>`;
+  }
+  sel.innerHTML = html || '<option value="">Default voice</option>';
+  const want = voicePref || (tts && !ttsBlocked ? 'claude:' + (ttsVoices[0] || 'buttery') : (bVoices[0] ? 'b:' + bVoices[0].voiceURI : ''));
+  if([...sel.options].some(o => o.value === want)) sel.value = want;
+  const ua = navigator.userAgent;
+  const tip = /Windows/.test(ua) ? 'Clearest on Windows: open this page in Microsoft Edge and pick a voice with “Natural” in its name (Aria, Jenny, Ava).'
+    : /Macintosh|iPad|iPhone/.test(ua) ? 'Clearest on Mac and iPad: Samantha or Ava. You can download “Enhanced” voices in Settings → Accessibility → Spoken Content.'
+    : 'In Chrome, “Google US English” is clear.';
+  $('vtip').textContent = (tts && !ttsBlocked ? '★ Claude voices are the clearest. They play on your own account; students on their own devices hear the device voice. ' : '') + tip;
+  $('spNormal').setAttribute('aria-pressed', !slow); $('spSlow').setAttribute('aria-pressed', slow);
+}
+
+let actx = null;
+function tone(notes, type = 'sine', len = 0.13){
+  if(!voiceOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    notes.forEach((f, i) => {
+      const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + i * len;
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.15, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + len * 1.6);
+      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + len * 1.8);
+    });
+  } catch(e){}
+}
+const good = () => tone([660, 880]);
+const bad  = () => tone([240, 190], 'triangle', 0.16);
+const yay  = () => tone([523, 659, 784, 1047], 'sine', 0.11);
+
+/* ================= state ================= */
+let LV = 0, ST = 0, P = 0, S = null;   // level on the course map, stage in it, part index, item state
+const part = () => PARTS[P];
+const isLearn = () => LEVELS[LV].type === 'learn';
+const stage = () => isLearn() ? 'learn' : STAGES[ST].id;
+
+function startStage(lv, s, speakFirst){
+  stopListening(); stopVoice();
+  LV = lv; ST = s;
+  if(isLearn()){ startDeck(speakFirst); return; }
+  P = LEVELS[lv].p;
+  S = { items: pick(part().models, PER_STAGE), idx: 0, finished: false };
+  startItem(speakFirst);
+}
+function startItem(speakFirst){
+  const m = S.items[S.idx];
+  Object.assign(S, { m, tokens: part().frame(m), filled:{}, used:new Set(), selected:null, solved:false, tries:0, heard:'', msg:null, said:null, showPics:false, playing:false, heardFull:false });
+  if(stage() === 'build'){
+    S.tokens.forEach(t => { if(typeof t === 'object' && t.given) S.filled[t.k] = t.w; });
+    S.order = part().bank(m);
+  }
+  if(stage() === 'write') S.blanks = makeBlanks();
+  render();
+  if(speakFirst && (stage() === 'repeat' || stage() === 'write')) setTimeout(() => saySentence(textOf(S.tokens)), 250);
+}
+function finishStage(){
+  const wasOpen = currentLevel();
+  done[LV + '-' + ST] = true; store.set('done', done);
+  S.finished = true; S.levelUp = currentLevel() > wasOpen;
+  render(); yay();
+  if(S.levelUp) confetti();
+}
+function nextItem(){
+  stopListening();
+  if(S.idx < PER_STAGE - 1){ S.idx++; startItem(true); return; }
+  finishStage();
+}
+function solved(sentence){
+  S.solved = true; S.said = sentence; S.heardFull = false; render(); yay();
+  setTimeout(playFull, 350);
+}
+
+/* ================= course map ================= */
+function buildCourse(){
+  const c = $('course');
+  const stations = LEVELS.map((l, i) => `<button class="stn" data-lv="${i}"><span class="c">${l.icon}</span><span class="l">${l.type === 'part' ? `Part ${l.p + 1}<br>${l.name}` : l.name.replace(' the ', ' the<br>').replace('Things to', 'Things<br>to')}</span></button>`).join('');
+  c.innerHTML = `<div class="track"><div class="fill" id="fill"></div></div>${stations}<div class="stn finish" aria-hidden="true"><span class="c">🏆</span><span class="l">Finish</span></div><span class="marker" id="marker" aria-hidden="true">🌤️</span>`;
+  c.querySelectorAll('.stn[data-lv]').forEach(b => b.onclick = () => {
+    const lv = +b.dataset.lv;
+    if(!levelOpen(lv)){ b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); bad(); return; }
+    if(lv === LV && !S.finished) return;
+    startStage(lv, firstOpenStage(lv), true);
+  });
+}
+function renderCourse(){
+  const n = LEVELS.length + 1, cur = currentLevel();
+  document.querySelectorAll('#course .stn[data-lv]').forEach(b => {
+    const lv = +b.dataset.lv;
+    b.classList.toggle('done', levelDone(lv));
+    b.classList.toggle('here', lv === LV);
+    b.classList.toggle('locked', !levelOpen(lv));
+    b.setAttribute('aria-label', `${levelTitle(lv)}${levelDone(lv) ? ', done' : !levelOpen(lv) ? ', locked' : ''}`);
+    if(lv === LV) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+  });
+  document.querySelector('#course .finish').classList.toggle('done', cur >= LEVELS.length);
+  const at = S && S.finished && S.levelUp ? Math.min(LV + 1, LEVELS.length) : LV;
+  $('marker').style.left = `${(at + 0.5) / n * 100}%`;
+  $('fill').style.width = `${Math.min(cur, LEVELS.length) / (n - 1) * 100}%`;
+  $('courseCap').textContent = `You are here: ${levelTitle(LV)}`;
+}
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const box = document.createElement('div'); box.className = 'confetti'; box.setAttribute('aria-hidden', 'true');
+  const bits = ['⭐','☀️','🌸','🍁','❄️','🌈','💧'];
+  for(let i = 0; i < 26; i++){
+    const s = document.createElement('span'); s.textContent = bits[i % bits.length];
+    s.style.left = Math.random() * 100 + '%'; s.style.animationDelay = (Math.random() * 0.6) + 's'; s.style.fontSize = (18 + Math.random() * 16) + 'px';
+    box.appendChild(s);
+  }
+  document.querySelector('.board').appendChild(box);
+  setTimeout(() => box.remove(), 3600);
+}
+
+/* ================= render ================= */
+function render(){
+  renderCourse();
+  const stages = stagesOf(LV);
+  $('stages').innerHTML = stages.map((s, i) => {
+    const lock = !unlocked(LV, i);
+    return `<button class="stage ${isDone(LV, i) ? 'done' : ''} ${lock ? 'locked' : ''}" data-s="${i}" ${i === ST ? 'aria-current="step"' : ''} ${lock ? 'aria-disabled="true"' : ''}>${lock ? '🔒 ' + s.name.replace(/^\S+\s/, '') : s.name}${isDone(LV, i) ? ' ✓' : ''}</button>`;
+  }).join('');
+  $('stages').querySelectorAll('.stage').forEach(b => b.onclick = () => {
+    const s = +b.dataset.s;
+    if(s === ST && !S.finished) return;
+    if(!unlocked(LV, s)){ b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); bad(); return; }
+    startStage(LV, s, true);
+  });
+
+  const body = $('body'); body.innerHTML = '';
+  $('bankSec').hidden = true;
+  if(S.finished){ $('task').textContent = ''; $('progress').innerHTML = ''; renderFinished(); return; }
+  if(isLearn()){ renderLearn(); return; }
+  $('task').textContent = STAGES[ST].task;
+  $('progress').innerHTML = Array.from({length:PER_STAGE}, (_, i) =>
+    `<span class="dot ${i < S.idx || (i === S.idx && S.solved) ? 'done' : ''} ${i === S.idx ? 'now' : ''}"></span>`).join('');
+  const sent = document.createElement('p'); sent.className = 'sentence'; sent.id = 'sentence';
+  body.appendChild(sent);
+  ({ build:renderBuild, repeat:renderRepeat, say:renderSay, write:renderWrite })[stage()](sent);
+}
+
+function renderFinished(){
+  const stages = stagesOf(LV), lastStage = ST === stages.length - 1, lastLevel = LV === LEVELS.length - 1;
+  let big, title, sub, label, go;
+  if(!lastStage){
+    big = '⭐⭐⭐'; title = 'Great job!'; sub = `${stages[ST].name.replace(/^\S+\s/, '')}: done.`;
+    label = `Next: ${stages[ST + 1].name} →`; go = () => startStage(LV, ST + 1, true);
+  } else if(!lastLevel){
+    big = '🏆'; title = `${levelTitle(LV)}: done!`; sub = `The next stop on the map is open: ${levelTitle(LV + 1)}.`;
+    label = `On to ${levelTitle(LV + 1)} →`; go = () => startStage(LV + 1, firstOpenStage(LV + 1), true);
+  } else {
+    big = '🌈'; title = 'You finished the course!'; sub = 'Now you can talk about the weather in English.';
+    label = 'Start the course again →'; go = () => startStage(0, 0, true);
+  }
+  $('body').innerHTML = `<div class="celebrate pop"><div class="big">${big}</div><h2>${title}</h2><p>${sub}</p></div>`;
+  $('feedback').innerHTML = `<button class="btn" id="again">Play this stage again</button><button class="btn primary" id="go">${label}</button>`;
+  $('again').onclick = () => startStage(LV, ST, true);
+  $('go').onclick = go;
+}
+
+/* ---------- Learn the words: meet each card, then "Find it!" ---------- */
+function startDeck(speakFirst){
+  const deck = stagesOf(LV)[ST].deck;
+  S = { learn:true, deck, cards: DECKS[deck].words.slice(), i:0, phase:'meet', heardCards:new Set(), playing:false, finished:false };
+  render();
+  if(speakFirst) setTimeout(playCard, 250);
+}
+function playCard(){
+  const w = S.cards[S.i], idx = S.i;
+  S.playing = true; updateLearnButtons();
+  saySentence(`${w}. ${exampleOf(w)}`).then(heard => { S.playing = false; if(heard) S.heardCards.add(idx); updateLearnButtons(); });
+}
+function updateLearnButtons(){
+  if(!S.learn || S.phase !== 'meet') return;
+  const h = $('lhear'), n = $('lnext'), note = document.querySelector('.listen-note');
+  if(!h || !n) return;
+  const ok = S.heardCards.has(S.i);
+  h.textContent = S.playing ? '🔊 Listening…' : '🔊 Hear it';
+  n.disabled = !ok;
+  if(note) note.hidden = ok;
+}
+function flashPic(w){
+  const x = W[w];
+  return x.cat === 'activity' ? `<span class="emo" aria-hidden="true">${x.emoji}</span>` : `<span class="pic">${pic(w)}</span>`;
+}
+function renderLearn(){
+  const body = $('body'), f = $('feedback');
+  if(S.phase === 'meet'){
+    const w = S.cards[S.i], last = S.i === S.cards.length - 1;
+    $('task').textContent = 'Look. Listen. Say the word out loud.';
+    $('progress').innerHTML = `<span class="count">${S.i + 1} / ${S.cards.length}</span>`;
+    body.innerHTML = `<div class="learn-wrap"><div class="flash pop">${flashPic(w)}<span class="word" id="fword">${w}</span><span class="ex">${exampleOf(w)}</span><button class="he-chip" aria-label="Hebrew">עב</button></div></div>`;
+    hoverSay($('fword'), w);
+    const chip = body.querySelector('.he-chip');
+    chip.onclick = () => { const b = document.createElement('span'); b.className = 'he-bubble'; b.textContent = W[w].he; chip.parentElement.appendChild(b); setTimeout(() => b.remove(), 2500); };
+    f.innerHTML = `<span class="sayit">🗣️ Say it!</span>${S.i > 0 ? '<button class="btn" id="lback">← Back</button>' : ''}<button class="btn" id="lhear">🔊 Hear it</button><button class="btn primary" id="lnext">${last ? 'Play “Find it!” →' : 'Next →'}</button><span class="listen-note">Listen first, then tap Next.</span>`;
+    $('lhear').onclick = () => { if(!S.playing) playCard(); };
+    if($('lback')) $('lback').onclick = () => { S.i--; render(); playCard(); };
+    $('lnext').onclick = () => {
+      if(!S.heardCards.has(S.i)) return;
+      if(!last){ S.i++; render(); playCard(); return; }
+      startQuiz();
+    };
+    updateLearnButtons();
+    return;
+  }
+  /* quiz */
+  const q = S.q, target = q.rounds[q.r];
+  $('task').textContent = 'Listen. Tap the right picture.';
+  $('progress').innerHTML = q.rounds.map((_, i) => `<span class="dot ${i < q.r || (i === q.r && q.got) ? 'done' : ''} ${i === q.r ? 'now' : ''}"></span>`).join('');
+  body.innerHTML = `<div class="quiz">${q.opts.map(o => `<button class="qopt ${q.got && o === target ? 'right' : ''}" data-w="${esc(o)}" aria-label="Picture">${flashPic(o)}${q.got && o === target ? `<span class="w">${o}</span>` : ''}</button>`).join('')}</div>`;
+  body.querySelectorAll('.qopt').forEach(b => b.onclick = () => answerQuiz(b.dataset.w, b));
+  f.innerHTML = `<button class="btn" id="qhear">🔊 Hear it again</button>${q.got ? '<span class="sayit pop">⭐ Yes!</span>' : ''}`;
+  $('qhear').onclick = () => saySentence(target);
+}
+function startQuiz(){
+  /* every word three times, shuffled, never the same word twice in a row */
+  let rounds;
+  do { rounds = shuffle([...S.cards, ...S.cards, ...S.cards]); } while(rounds.some((w, i) => i && w === rounds[i - 1]) && fixRepeats(rounds));
+  S.phase = 'quiz'; S.q = { rounds, r:0, got:false };
+  newRound();
+}
+function fixRepeats(a){
+  for(let i = 1; i < a.length; i++) if(a[i] === a[i - 1]){
+    const j = a.findIndex((w, k) => k > i && w !== a[i - 1] && (k + 1 >= a.length || a[k + 1] !== a[i]) && a[k - 1] !== a[i]);
+    if(j < 0) return true;
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.some((w, i) => i && w === a[i - 1]);
+}
+function newRound(){
+  const q = S.q, target = q.rounds[q.r];
+  q.got = false;
+  q.opts = shuffle([target, ...pick(S.cards.filter(c => c !== target), 3)]);
+  render();
+  setTimeout(() => saySentence(target), 250);
+}
+function answerQuiz(w, el){
+  const q = S.q, target = q.rounds[q.r];
+  if(q.got) return;
+  if(w !== target){
+    bad(); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+    setTimeout(() => saySentence(target), 350);
+    return;
+  }
+  q.got = true; good(); render();
+  setTimeout(() => {
+    if(!S.learn || S.q !== q) return;
+    if(q.r < q.rounds.length - 1){ q.r++; newRound(); } else finishStage();
+  }, 1100);
+}
+
+function textSpan(sent, t){
+  const sp = document.createElement('span');
+  sp.className = 'say' + (t === '.' ? ' tight' : ''); sp.textContent = t;
+  if(t !== '.') hoverSay(sp, t);
+  sent.appendChild(sp);
+}
+function slotInner(id, label){
+  const w = W[id];
+  if(w.cat === 'activity') return `<span class="emo" aria-hidden="true">${w.emoji}</span>${label ? `<span class="w">${id}</span>` : ''}`;
+  return `<span class="pic">${pic(id)}</span>${label ? `<span class="w">${id}</span>` : ''}`;
+}
+function picSlot(sent, id, cls, label){
+  const b = document.createElement('span');
+  b.className = 'slot static ' + cls; b.innerHTML = slotInner(id, label); b.setAttribute('role', 'img'); b.setAttribute('aria-label', label ? id : 'picture');
+  if(label) hoverSay(b, id);
+  sent.appendChild(b); return b;
+}
+function feedbackButtons(html){ $('feedback').innerHTML = html; }
+
+/* ---------- Build it ---------- */
+function renderBuild(sent){
+  S.tokens.forEach(t => {
+    if(typeof t === 'string'){ textSpan(sent, t); return; }
+    const b = document.createElement('button');
+    b.className = 'slot'; b.dataset.k = t.k;
+    const w = S.filled[t.k];
+    if(t.given){ b.classList.add('given'); b.innerHTML = slotInner(w, true); b.setAttribute('aria-label', w); hoverSay(b, w); }
+    else if(w){ b.classList.add('filled'); b.innerHTML = slotInner(w, true); b.setAttribute('aria-label', w); hoverSay(b, w); }
+    else { b.innerHTML = '<span class="q">?</span>'; b.setAttribute('aria-label', 'Empty box'); if(S.selected) b.classList.add('ready'); }
+    b.onclick = () => slotClick(t, b);
+    sent.appendChild(b);
+  });
+  if(S.solved){
+    feedbackButtons(`<span class="sayit pop">🎤 Now you say it!</span>${nextControls()}`);
+    wireNext();
+  } else {
+    $('feedback').innerHTML = S.msg ? `<p class="msg ${S.msg.oops ? 'oops' : ''}">${S.msg.text}</p>` : '';
+    $('bankSec').hidden = false;
+    renderBank();
+  }
+}
+function renderBank(){
+  const bank = $('bank'); bank.innerHTML = '';
+  S.order.filter(id => part().reuse || !S.used.has(id)).forEach(id => {
+    const w = W[id], c = document.createElement('div');
+    c.className = 'card' + (w.cat === 'activity' ? ' act' : '') + (S.selected === id ? ' selected' : '');
+    c.tabIndex = 0; c.setAttribute('role', 'button'); c.setAttribute('aria-label', id); c.dataset.id = id;
+    c.innerHTML = (w.cat === 'activity' ? `<span class="tile2" aria-hidden="true">${w.emoji}</span>` : `<span class="pic">${pic(id)}</span>`)
+      + `<span class="w">${id}</span><button class="he-chip" tabindex="-1" aria-label="Hebrew">עב</button>`;
+    wireCard(c, id);
+    bank.appendChild(c);
+  });
+}
+function buildComplete(){ return S.tokens.every(t => typeof t !== 'object' || S.filled[t.k]); }
+function place(k, id, el){
+  if(S.filled[k]) return;
+  if(!part().fits(S.m, k, id, S.filled)){
+    bad(); browserSay('Try again!');
+    if(el){ el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+    S.msg = { text: part().why(S.m, id), oops:true };
+    $('feedback').innerHTML = `<p class="msg oops">${S.msg.text}</p>`;
+    return;
+  }
+  S.filled[k] = id; S.used.add(id); S.selected = null; S.msg = null;
+  if(buildComplete()){
+    const sentence = textOf(S.tokens.map(t => typeof t === 'string' ? t : { w: S.filled[t.k] }));
+    solved(sentence);
+  } else { good(); sayWord(id); render(); }
+  const s = document.querySelector(`.slot[data-k="${k}"]`); s && s.classList.add('pop');
+}
+function slotClick(t, el){
+  if(t.given || S.solved) return;
+  if(S.filled[t.k]){
+    if(!part().reuse) S.used.delete(S.filled[t.k]);
+    delete S.filled[t.k]; render(); return;
+  }
+  if(S.selected) place(t.k, S.selected, el);
+  else { S.msg = { text:'Pick a card first, then tap the box.' }; $('feedback').innerHTML = `<p class="msg">${S.msg.text}</p>`; }
+}
+
+/* ---------- Listen & repeat / Say it yourself ---------- */
+function renderRepeat(sent){
+  S.tokens.forEach(t => typeof t === 'string' ? textSpan(sent, t) : picSlot(sent, t.w, t.given ? 'given' : 'shown', true));
+  speakControls(() => saySentence(textOf(S.tokens)), '🔊 Hear it');
+}
+function renderSay(sent){
+  const free = part().free;
+  S.tokens.forEach(t => {
+    if(typeof t === 'string'){ textSpan(sent, t); return; }
+    if(free && !t.given){ const b = document.createElement('span'); b.className = 'slot static'; b.innerHTML = '<span class="q">?</span>'; sent.appendChild(b); return; }
+    picSlot(sent, t.w, 'shown', S.tries >= 2);
+  });
+  speakControls(() => saySentence(free ? exampleFor() : textOf(S.tokens)), '💡 Hint');
+}
+function exampleFor(){
+  const m = S.m;
+  if(P === 2) return `I like the ${m.s} because it is ${pick(SEASON_WORDS[m.s], 1)[0]}.`;
+  if(P === 3) return `When it is ${m.w} I like to ${pick(ACT_IDS.filter(a => W[a].fits.includes(m.w)), 1)[0]}.`;
+  return textOf(S.tokens);
+}
+function speakControls(hear, hearLabel){
+  const f = $('feedback');
+  const heard = S.heard ? `<p class="heard" style="flex-basis:100%">I heard: <q>${S.heard.replace(/[<>&]/g, '')}</q></p>` : '';
+  if(S.solved){
+    f.innerHTML = `${heard}<span class="sayit pop">⭐ Well said!</span>${nextControls()}`;
+    wireNext();
+    return;
+  }
+  const msg = S.msg ? `<p class="msg ${S.msg.oops ? 'oops' : ''}" style="flex-basis:100%">${S.msg.text}</p>` : '';
+  const mic = (dict && !micOff)
+    ? `<button class="btn mic ${S.listening ? 'on' : ''}" id="mic">${S.listening ? '● Listening… tap when done' : '🎤 Tap and say it'}</button>`
+    : `<button class="btn mic" id="selfok">✓ I said it!</button>`;
+  const teacher = (dict && !micOff && S.tries >= 1) ? `<button class="btn small" id="accept">Teacher: accept</button>` : '';
+  const skip = S.tries >= 2 ? `<button class="btn primary" id="moveon">Next →</button>` : '';
+  f.innerHTML = `${heard}${msg}${mic}<button class="btn" id="hear">${hearLabel}</button>${teacher}${skip}`;
+  $('hear').onclick = hear;
+  if($('mic')) $('mic').onclick = micClick;
+  if($('selfok')) $('selfok').onclick = () => solved(S.said || textOf(S.tokens));
+  if($('accept')) $('accept').onclick = () => { stopListening(); solved(textOf(S.tokens)); };
+  if($('moveon')) $('moveon').onclick = () => { stopListening(); solved(textOf(S.tokens)); };
+  if(!dict || micOff){
+    if(!S.msg) $('feedback').insertAdjacentHTML('afterbegin', `<p class="msg" style="flex-basis:100%">Say it out loud, then tap ✓.</p>`);
+  }
+}
+function checkSpeech(text){
+  const toks = tokensOf(text), p = part(), m = S.m;
+  if(stage() === 'say') return p.sayCheck(m, toks);
+  if(P === 1) return p.sayCheck(m, toks);
+  return { ok: p.keys(m).every(w => hasWord(toks, w)), said: textOf(S.tokens) };
+}
+
+/* dictation */
+let L = null;   // current listening session
+function micClick(){
+  if(!dict) return;
+  if(dict.active()){ dict.stop().catch(() => {}); return; }
+  stopVoice();
+  L = { text:'', partial:'', ok:null };
+  S.msg = null; S.heard = '';
+  const opts = micLangTried ? undefined : { language:'en' };
+  dict.start(opts).then(() => {
+    clearTimeout(L && L.timer);
+    if(L) L.timer = setTimeout(() => dict.stop().catch(() => {}), 9000);
+  }).catch(e => {
+    if(e.code === 'unavailable' && !micLangTried){ micLangTried = true; S.msg = { text:'Tap the microphone once more.' }; }
+    else if(e.code === 'not_granted' || e.code === 'unavailable'){ micOff = true; S.msg = { text:'The microphone is off. Say it out loud, then tap ✓.' }; }
+    else if(e.code === 'dismissed'){ S.msg = { text:'Tap the microphone and choose Allow.' }; }
+    else if(e.code === 'rate_limited'){ S.msg = { text:'The microphone is busy. Try again in a moment.' }; }
+    else if(e.code !== 'stopped'){ S.msg = { text:'The microphone didn’t start. Try again.', oops:true }; }
+    L = null; S.listening = false; render();
+  });
+}
+function liveCheck(){
+  if(!L || L.ok) return;
+  const text = (L.text + ' ' + L.partial).trim();
+  S.heard = text;
+  const r = checkSpeech(text);
+  if(r.ok){ L.ok = r; dict.stop().catch(() => {}); }
+  else if(S.listening){ const h = document.querySelector('.heard q'); if(h) h.textContent = text; else render(); }
+}
+function finishListening(){
+  if(!L) return;
+  clearTimeout(L.timer);
+  const sess = L; L = null;
+  const text = (sess.text + ' ' + sess.partial).trim();
+  S.heard = text;
+  const r = sess.ok || checkSpeech(text);
+  if(r.ok){ solved(r.said || textOf(S.tokens)); return; }
+  if(!text){ S.msg = { text:'I didn’t hear anything. Tap the microphone and speak.' }; render(); return; }
+  S.tries++; bad();
+  if(S.tries >= 2){ S.msg = { text: (r.hint ? r.hint + ' ' : '') + 'Good try! Listen once more, then say it again.' }; render(); saySentence(stage() === 'say' && part().free ? exampleFor() : textOf(S.tokens)); }
+  else { S.msg = { text: (r.hint || 'Almost!') + ' Try again.', oops:true }; render(); }
+}
+function stopListening(){ if(dict && dict.active()){ L = null; dict.stop().catch(() => {}); } }
+
+/* ---------- Write it ---------- */
+/* Each blank: state '' (empty/typing) → 'ok' (right) | 'almost' (small slip, corrected for them) | 'copy' (shown the word to copy) → 'given' (filled in for them). */
+function makeBlanks(){
+  const out = [];
+  S.tokens.forEach(t => {
+    if(typeof t === 'string' || t.given) return;
+    const ans = W[t.w].cat === 'activity' ? W[t.w].key : t.w;
+    let letters = ans.split('');
+    if(letters.length > 1){ let s; do { s = shuffle(letters); } while(s.join('') === ans); letters = s; }
+    out.push({ k:t.k, w:t.w, ans, val:'', state:'', typed:'', misses:0, letters: letters.map(ch => ({ ch, used:false })), picked:[] });
+  });
+  return out;
+}
+const blankDone = b => b.state === 'ok' || b.state === 'almost' || b.state === 'given';
+/* Letters of the right word that the child missed or got wrong (by longest common subsequence). */
+function missedLetters(typed, ans){
+  const a = typed.toLowerCase(), b = ans.toLowerCase(), m = a.length, n = b.length;
+  const d = Array.from({length:m + 1}, () => new Array(n + 1).fill(0));
+  for(let i = m - 1; i >= 0; i--) for(let j = n - 1; j >= 0; j--) d[i][j] = a[i] === b[j] ? d[i+1][j+1] + 1 : Math.max(d[i+1][j], d[i][j+1]);
+  const keep = new Set(); let i = 0, j = 0;
+  while(i < m && j < n){ if(a[i] === b[j]){ keep.add(j); i++; j++; } else if(d[i+1][j] >= d[i][j+1]) i++; else j++; }
+  return ans.split('').map((ch, k) => keep.has(k) ? ch : `<mark>${ch}</mark>`).join('');
+}
+function closeEnough(v, ans){
+  if(ans.length < 3) return false;
+  const limit = ans.length >= 7 ? 2 : 1;
+  return levFull(v, ans) <= limit;
+}
+function levFull(a, b){
+  const m = a.length, n = b.length, d = Array.from({length:m + 1}, (_, i) => [i]);
+  for(let j = 1; j <= n; j++) d[0][j] = j;
+  for(let i = 1; i <= m; i++) for(let j = 1; j <= n; j++){
+    d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    if(i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]) d[i][j] = Math.min(d[i][j], d[i-2][j-2] + 1);  // swapped letters count as one slip
+  }
+  return d[m][n];
+}
+function renderWrite(sent){
+  S.tokens.forEach(t => {
+    if(typeof t === 'string'){ textSpan(sent, t); return; }
+    if(t.given){ const sp = document.createElement('span'); sp.className = 'say given-word'; sp.textContent = t.w; hoverSay(sp, t.w); sent.appendChild(sp); return; }
+    const bi = S.blanks.findIndex(b => b.k === t.k), b = S.blanks[bi];
+    const wrap = document.createElement('span'); wrap.className = 'blankwrap';
+    if(S.showPics) wrap.insertAdjacentHTML('beforeend', `<span class="mini" aria-hidden="true">${W[t.w].cat === 'activity' ? W[t.w].emoji : pic(t.w)}</span>`);
+    if(W[t.w].cat === 'activity'){
+      t.w.split(' ').forEach(word => {
+        if(word.toLowerCase() === b.ans){ wrap.appendChild(blankEl(b, bi)); }
+        else { const sp = document.createElement('span'); sp.className = 'say'; sp.textContent = word; wrap.appendChild(sp); }
+      });
+    } else wrap.appendChild(blankEl(b, bi));
+    sent.appendChild(wrap);
+  });
+  const f = $('feedback');
+  const msg = S.msg ? `<p class="msg ${S.msg.good ? 'good' : ''}" style="flex-basis:100%">${S.msg.text}</p>` : '';
+  if(S.solved){
+    f.innerHTML = `${msg}<span class="sayit pop">⭐ Well written!</span>${nextControls()}`;
+    wireNext();
+    return;
+  }
+  f.innerHTML = `${msg}<button class="btn" id="hear">🔊 Hear it</button>${tilesOn ? '' : '<button class="btn primary" id="check">Check ✓</button>'}${S.showPics ? '' : '<button class="btn" id="pics">💡 Show pictures</button>'}`;
+  $('hear').onclick = () => saySentence(textOf(S.tokens));
+  if($('check')) $('check').onclick = checkWriting;
+  if($('pics')) $('pics').onclick = () => { S.showPics = true; render(); };
+  const firstOpen = sent.querySelector('input.blank:not([readonly])');
+  if(firstOpen && S.focusNext){ firstOpen.focus(); S.focusNext = false; }
+}
+function blankEl(b, bi){
+  const col = document.createElement('span'); col.className = 'bcol';
+  if(!tilesOn){
+    const inp = document.createElement('input');
+    const done = blankDone(b);
+    inp.className = 'blank' + (b.state === 'ok' || b.state === 'given' ? ' ok' : b.state === 'almost' ? ' almost' : b.state === 'copy' ? ' copy' : '');
+    inp.id = 'blank-' + bi; inp.value = done ? b.ans : b.val; inp.readOnly = done;
+    inp.setAttribute('aria-label', 'Missing word ' + (bi + 1));
+    inp.autocomplete = 'off'; inp.spellcheck = false; inp.setAttribute('autocapitalize', 'off'); inp.setAttribute('autocorrect', 'off'); inp.lang = 'en';
+    inp.style.width = Math.max(b.ans.length + 1.5, 4) + 'ch';
+    inp.addEventListener('input', () => {
+      b.val = inp.value;
+      if(/[֐-׿]/.test(inp.value)){
+        S.msg = { text:'Your keyboard is in Hebrew. Switch it to English (Alt + Shift).' };
+        $('feedback').querySelector('.msg')?.remove();
+        $('feedback').insertAdjacentHTML('afterbegin', `<p class="msg" style="flex-basis:100%">${S.msg.text}</p>`);
+      }
+    });
+    inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); checkWriting(); } });
+    col.appendChild(inp);
+    if(b.state === 'almost') col.insertAdjacentHTML('beforeend', `<span class="fix" aria-label="Spelled ${b.ans}">${missedLetters(b.typed, b.ans)}</span>`);
+    if(b.state === 'copy') col.insertAdjacentHTML('beforeend', `<span class="fix copy">${b.ans}</span>`);
+    return col;
+  }
+  /* Letter tiles: only the right next letter goes in, so the child builds the spelling in order. */
+  const j = document.createElement('span'); j.className = 'jum' + (blankDone(b) ? ' ok' : '');
+  const boxes = document.createElement('span'); boxes.className = 'boxes';
+  for(let i = 0; i < b.ans.length; i++){
+    const bx = document.createElement('span'); bx.className = 'box';
+    bx.textContent = blankDone(b) ? b.ans[i] : (b.picked[i] !== undefined ? b.letters[b.picked[i]].ch : '');
+    boxes.appendChild(bx);
+  }
+  j.appendChild(boxes);
+  if(!blankDone(b)){
+    const tiles = document.createElement('span'); tiles.className = 'tiles';
+    const want = b.ans[b.picked.length];
+    let hinted = false;
+    b.letters.forEach((L2, li) => {
+      if(L2.used) return;
+      const t = document.createElement('button'); t.className = 'tile'; t.textContent = L2.ch;
+      if(b.misses >= 2 && !hinted && L2.ch === want){ t.classList.add('hint'); hinted = true; }
+      t.onclick = () => tapTile(b, L2, li, t);
+      tiles.appendChild(t);
+    });
+    j.appendChild(tiles);
+  }
+  col.appendChild(j);
+  return col;
+}
+function tapTile(b, L2, li, el){
+  const want = b.ans[b.picked.length];
+  if(L2.ch !== want){
+    b.misses++; bad();
+    el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+    if(b.misses === 2){ S.msg = { text:'Look for the glowing letter.' }; render(); }
+    return;
+  }
+  L2.used = true; b.picked.push(li); b.misses = 0; sayLetter(L2.ch);
+  if(b.picked.length === b.ans.length){ b.state = 'ok'; good(); sayWord(b.ans); S.msg = null; }
+  if(S.blanks.every(blankDone)) solved(textOf(S.tokens)); else render();
+}
+function sayLetter(ch){ if(hoverOn) browserSay(ch); }
+function checkWriting(){
+  let anyCopy = false, anyAlmost = false;
+  S.blanks.forEach(b => {
+    if(blankDone(b)) return;
+    const v = (b.val || '').trim().toLowerCase(), ans = b.ans.toLowerCase();
+    if(!v) return;
+    if(v === ans){ b.state = 'ok'; return; }
+    if(closeEnough(v, ans)){ b.state = 'almost'; b.typed = b.val.trim(); anyAlmost = true; return; }
+    if(b.state === 'copy'){ b.state = 'given'; return; }       // second miss: fill it in, the word stays on screen
+    b.state = 'copy'; b.val = ''; anyCopy = true;
+  });
+  if(S.blanks.some(b => !blankDone(b) && !(b.val || '').trim() && b.state !== 'copy')){
+    S.msg = { text:'Write a word in every space. Tap 🔊 to hear the sentence again.' }; render(); return;
+  }
+  if(anyCopy){ S.msg = { text:'This is how we spell it. Copy the word into the space.' }; S.focusNext = true; render(); return; }
+  if(S.blanks.every(blankDone)){
+    if(anyAlmost) S.msg = { text:'Almost! Look at the yellow letters. That’s the right spelling.', good:true };
+    else if(S.blanks.some(b => b.state === 'given')) S.msg = { text:'Look at the spelling, then listen to the sentence.' };
+    else S.msg = null;
+    good(); solved(textOf(S.tokens)); return;
+  }
+  render();
+}
+
+/* ================= hover reading ================= */
+let hoverTimer = null, dragging = null;
+function hoverSay(el, text){
+  el.addEventListener('pointerenter', e => {
+    if(e.pointerType !== 'mouse' || !hoverOn || dragging) return;
+    clearTimeout(hoverTimer); hoverTimer = setTimeout(() => sayWord(text), 180);
+  });
+  el.addEventListener('pointerleave', () => clearTimeout(hoverTimer));
+}
+
+/* ================= cards: tap, drag, Hebrew ================= */
+function selectCard(id){ S.selected = S.selected === id ? null : id; if(S.selected) sayWord(id); render(); }
+function wireCard(c, id){
+  const chip = c.querySelector('.he-chip');
+  chip.addEventListener('pointerdown', e => e.stopPropagation());
+  chip.addEventListener('click', e => {
+    e.stopPropagation();
+    c.querySelectorAll('.he-bubble').forEach(b => b.remove());
+    const b = document.createElement('span'); b.className = 'he-bubble'; b.textContent = W[id].he;
+    c.appendChild(b); setTimeout(() => b.remove(), 2500);
+  });
+  hoverSay(c, id);
+  c.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); selectCard(id); } });
+  c.addEventListener('click', () => { if(c.dataset.dragged){ delete c.dataset.dragged; return; } selectCard(id); });
+  c.addEventListener('pointerdown', e => {
+    if(e.button > 0) return;
+    const rect = c.getBoundingClientRect();
+    dragging = { c, id, x0:e.clientX, y0:e.clientY, dx:e.clientX - rect.left, dy:e.clientY - rect.top, w:rect.width, moved:false, ghost:null, over:null };
+    try { c.setPointerCapture(e.pointerId); } catch(err){}
+  });
+  c.addEventListener('pointermove', e => {
+    const d = dragging; if(!d || d.c !== c) return;
+    if(!d.moved){
+      if(Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 6) return;
+      d.moved = true; clearTimeout(hoverTimer);
+      d.ghost = c.cloneNode(true); d.ghost.classList.add('ghost'); d.ghost.classList.remove('selected');
+      d.ghost.style.width = d.w + 'px'; document.body.appendChild(d.ghost);
+      c.classList.add('lifting');
+    }
+    d.ghost.style.left = (e.clientX - d.dx) + 'px'; d.ghost.style.top = (e.clientY - d.dy) + 'px';
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const sl = under && under.closest('.slot[data-k]:not(.filled):not(.given)');
+    if(d.over && d.over !== sl) d.over.classList.remove('over');
+    if(sl) sl.classList.add('over');
+    d.over = sl;
+  });
+  const end = e => {
+    const d = dragging; if(!d || d.c !== c) return;
+    dragging = null;
+    if(!d.moved) return;
+    c.dataset.dragged = '1';
+    d.ghost && d.ghost.remove(); c.classList.remove('lifting');
+    if(d.over){ d.over.classList.remove('over'); if(e.type === 'pointerup') place(d.over.dataset.k, id, d.over); }
+  };
+  c.addEventListener('pointerup', end);
+  c.addEventListener('pointercancel', end);
+}
+
+/* ================= toolbar ================= */
+function syncTools(){
+  $('voiceBtn').setAttribute('aria-pressed', voiceOn); $('voiceBtn').textContent = voiceOn ? '🔊 Sound on' : '🔇 Sound off';
+  $('hoverBtn').setAttribute('aria-pressed', hoverOn);
+  $('tilesBtn').setAttribute('aria-pressed', tilesOn);
+  $('heBtn').setAttribute('aria-pressed', heOn);
+  document.body.classList.toggle('he-on', heOn);
+}
+$('voiceBtn').onclick = () => { voiceOn = !voiceOn; store.set('voice', voiceOn); if(!voiceOn) stopVoice(); syncTools(); };
+$('hoverBtn').onclick = () => { hoverOn = !hoverOn; store.set('hover', hoverOn); syncTools(); };
+$('tilesBtn').onclick = () => { tilesOn = !tilesOn; store.set('tiles', tilesOn); syncTools(); render(); };
+$('heBtn').onclick = () => { heOn = !heOn; store.set('he', heOn); syncTools(); };
+$('stopBtn').onclick = () => stopVoice();
+$('pickBtn').onclick = () => {
+  const p = $('vpanel'); p.hidden = !p.hidden;
+  $('pickBtn').setAttribute('aria-expanded', !p.hidden);
+  if(!p.hidden) fillVoicePanel();
+};
+const testVoice = () => saySentence('Sunny. Rainy. Windy. What’s the weather today?');
+$('voiceSel').onchange = e => { voicePref = e.target.value; store.set('voicePref', voicePref); testVoice(); };
+$('spNormal').onclick = () => { slow = false; store.set('slow', slow); fillVoicePanel(); testVoice(); };
+$('spSlow').onclick = () => { slow = true; store.set('slow', slow); fillVoicePanel(); testVoice(); };
+$('vtest').onclick = testVoice;
+
+const wake = () => {
+  $('wake').hidden = true;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch(e){}
+};
+document.addEventListener('pointerdown', wake, { once:true });
+document.addEventListener('keydown', wake, { once:true });
+
+/* ================= platform voice + microphone (light up when offered) ================= */
+if(cl){
+  cl.use('tts').then(t => {
+    tts = t;
+    if(!t) return;
+    t.onState(({ state, reason }) => {
+      $('stopBtn').hidden = state === 'idle';
+      if(reason === 'not_granted'){ ttsBlocked = true; fillVoicePanel(); }
+    });
+    t.voices().then(v => { ttsVoices = v || []; fillVoicePanel(); }).catch(() => fillVoicePanel());
+  }).catch(() => {});
+  cl.use('dictation').then(d => {
+    dict = d;
+    if(!d){ render(); return; }
+    d.onPartial(({ text }) => { if(L){ L.partial = text; liveCheck(); } });
+    d.onFinal(({ text }) => { if(L){ L.text += text; L.partial = ''; liveCheck(); } });
+    d.onState(({ state }) => {
+      if(!S || S.learn) return;
+      const was = S.listening;
+      S.listening = state === 'listening' || state === 'starting' || state === 'finishing';
+      if(state === 'idle'){ if(L) finishListening(); else if(was) render(); }
+      else if(!was && (stage() === 'repeat' || stage() === 'say')) render();
+    });
+    if(S && !S.learn) render();
+  }).catch(() => {});
+}
+
+/* New student: clears progress on this computer. Two taps, so it can't happen by accident. */
+let resetTimer = null;
+$('resetBtn').onclick = () => {
+  const b = $('resetBtn');
+  if(!b.classList.contains('armed')){
+    b.classList.add('armed'); b.textContent = 'Tap again to clear all progress';
+    resetTimer = setTimeout(() => { b.classList.remove('armed'); b.textContent = '↺ New student'; }, 4000);
+    return;
+  }
+  clearTimeout(resetTimer); b.classList.remove('armed'); b.textContent = '↺ New student';
+  done = {}; store.set('done', done); startStage(0, 0, false);
+};
+
+syncTools();
+fillVoicePanel();
+buildCourse();
+{ const cur = currentLevel(), lv = cur >= LEVELS.length ? 0 : cur; startStage(lv, firstOpenStage(lv), false); }
+</script>
+
+</body></html>
