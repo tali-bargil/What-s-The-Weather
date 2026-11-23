@@ -586,7 +586,10 @@ function startItem(speakFirst){
   }
   if(stage() === 'write') S.blanks = makeBlanks();
   render();
-  if(speakFirst && (stage() === 'repeat' || stage() === 'write')) setTimeout(() => saySentence(textOf(S.tokens)), 250);
+  const tok = S.token = Math.random();
+  if(speakFirst && stage() === 'write') setTimeout(() => saySentence(textOf(S.tokens)), 250);
+  if(speakFirst && stage() === 'repeat') setTimeout(() => saySentence(textOf(S.tokens)).then(() => autoListen(tok)), 250);
+  if(stage() === 'say') setTimeout(() => autoListen(tok), 600);
 }
 function finishStage(){
   const wasOpen = currentLevel();
@@ -879,7 +882,7 @@ function slotClick(t, el){
 /* ---------- Listen & repeat / Say it yourself ---------- */
 function renderRepeat(sent){
   S.tokens.forEach(t => typeof t === 'string' ? textSpan(sent, t) : picSlot(sent, t.w, t.given ? 'given' : 'shown', true));
-  speakControls(() => saySentence(textOf(S.tokens)), '🔊 Hear it');
+  speakControls(() => { const tok = S.token; saySentence(textOf(S.tokens)).then(() => autoListen(tok)); }, '🔊 Hear it');
 }
 function renderSay(sent){
   const free = part().free;
@@ -888,7 +891,7 @@ function renderSay(sent){
     if(free && !t.given){ const b = document.createElement('span'); b.className = 'slot static'; b.innerHTML = '<span class="q">?</span>'; sent.appendChild(b); return; }
     picSlot(sent, t.w, 'shown', true);
   });
-  speakControls(() => saySentence(free ? exampleFor() : textOf(S.tokens)), '💡 Hint');
+  speakControls(() => { const tok = S.token; saySentence(free ? exampleFor() : textOf(S.tokens)).then(() => autoListen(tok)); }, '💡 Hint');
 }
 function exampleFor(){
   const m = S.m;
@@ -930,17 +933,28 @@ function checkSpeech(text){
 
 /* dictation */
 let L = null;   // current listening session
-function micClick(){
+/* In a browser (not inside Claude) the mic can switch itself on: after the sentence plays in Listen & repeat,
+   and as soon as the pictures show in Say it yourself. Only for this item, and never while something is playing. */
+const autoMic = () => dict && dict.auto && !micOff;
+function autoListen(tok){
+  if(!autoMic() || !S || S.learn || S.finished || S.solved || S.token !== tok) return;
+  if(!(stage() === 'repeat' || stage() === 'say') || dict.active()) return;
+  micClick(true);
+}
+function micClick(auto){
+  auto = auto === true;
   if(!dict) return;
   if(dict.active()){ dict.stop().catch(() => {}); return; }
   stopVoice();
   L = { text:'', partial:'', ok:null };
-  S.msg = null; S.heard = '';
+  if(!auto) S.msg = null;   // after a miss, keep “Try again” on screen while it listens
+  S.heard = '';
   const opts = micLangTried ? undefined : { language:'en' };
   dict.start(opts).then(() => {
     clearTimeout(L && L.timer);
     if(L) L.timer = setTimeout(() => dict.stop().catch(() => {}), 9000);
   }).catch(e => {
+    if(auto){ L = null; S.listening = false; render(); return; }   // an automatic start that fails stays quiet; the 🎤 button still works
     if(e.code === 'unavailable' && !micLangTried){ micLangTried = true; S.msg = { text:'Tap the microphone once more.' }; }
     else if(e.code === 'not_granted' || e.code === 'unavailable'){ micOff = true; S.msg = { text:'The microphone is off. Say it out loud, then tap ✓.' }; }
     else if(e.code === 'dismissed'){ S.msg = { text:'Tap the microphone and choose Allow.' }; }
@@ -973,8 +987,8 @@ function finishListening(){
   if(r.ok){ solved(r.said || textOf(S.tokens)); return; }
   if(!text){ S.msg = { text:'I didn’t hear anything. Tap the microphone and speak.' }; render(); return; }
   S.tries++; bad();
-  if(S.tries >= 2){ S.msg = { text: (r.hint ? r.hint + ' ' : '') + 'Good try! Listen once more, then say it again.' }; render(); saySentence(stage() === 'say' && part().free ? exampleFor() : textOf(S.tokens)); }
-  else { S.msg = { text: (r.hint || 'Almost!') + ' Try again.', oops:true }; render(); }
+  if(S.tries >= 2){ S.msg = { text: (r.hint ? r.hint + ' ' : '') + 'Good try! Listen once more, then say it again.' }; render(); const tok = S.token; saySentence(stage() === 'say' && part().free ? exampleFor() : textOf(S.tokens)).then(() => autoListen(tok)); }
+  else { S.msg = { text: (r.hint || 'Almost!') + ' Try again.', oops:true }; render(); const tok = S.token; setTimeout(() => autoListen(tok), 1400); }
 }
 function stopListening(){ if(dict && dict.active()){ L = null; dict.stop().catch(() => {}); } }
 
@@ -1254,6 +1268,7 @@ function browserDictation(){
   if(!SR) return null;
   let rec = null, on = false, cbP = () => {}, cbF = () => {}, cbS = () => {}, stopDone = null;
   return {
+    auto: true,
     active: () => on,
     onPartial(f){ cbP = f; }, onFinal(f){ cbF = f; }, onState(f){ cbS = f; },
     start(){
