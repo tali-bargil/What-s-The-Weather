@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>What's the Weather?</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +26,7 @@
   --line:#3a5070; --slot:#14223a; --sun:#ffd25c; --sun-ink:#3a2700;
   --go:#4fc78c; --go-soft:#16392a; --oops:#ff8079; --oops-soft:#3d1d1d; --focus:#8db7ff; --shadow:rgba(0,0,0,.5); color-scheme:dark}
 
-body{background:var(--sky);color:var(--ink);font-family:var(--font-body);font-size:16px}
+body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--font-body);font-size:16px;-webkit-text-size-adjust:100%}
 .wrap{max-width:1040px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
 
 header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
@@ -190,18 +195,82 @@ body.he-on .he-chip{display:block}
 .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:4}
 .confetti span{position:absolute;top:-40px;animation:fall 2.8s ease-in forwards}
 @keyframes fall{to{transform:translateY(560px) rotate(300deg);opacity:0}}
+.gear,.mini{display:none}
+/* ---------- touch screens (phones and tablets): no hover reading, finger-sized controls ---------- */
+@media (pointer: coarse){
+  #hoverBtn{display:none}
+  .btn{min-height:48px}
+  .tool,.stage{min-height:42px}
+  .tile{width:44px;height:48px;font-size:24px}
+}
+/* ---------- phones ---------- */
+@media (max-width: 640px){
+  .wrap{gap:10px;padding-block:10px calc(var(--barH, 0px) + 24px)}
+  header.top{align-items:center;flex-wrap:nowrap}
+  h1{font-size:24px}
+  .sub,.wake,.course-cap{display:none}
+  /* settings: one ⚙️ button, the rest open as a menu */
+  .tools{flex-wrap:nowrap;gap:6px}
+  .gear{display:block;font-size:20px;padding:6px 12px}
+  .tools > .tool:not(.gear):not(.stop){display:none}
+  .tools.open{position:absolute;left:max(16px, env(safe-area-inset-left, 0px));right:max(16px, env(safe-area-inset-right, 0px));top:58px;z-index:20;flex-wrap:wrap;background:var(--paper);padding:12px;border-radius:18px;box-shadow:0 10px 30px var(--shadow)}
+  .tools.open > .tool:not(.stop){display:block;flex:1 1 calc(50% - 6px)}
+  .tools.open > .tool.gear{flex:0 0 100%;text-align:right;border:0;background:none;padding:0 4px;min-height:0;font-size:22px;color:var(--muted)}
+  .tools.open > .gear::after{content:' ✕'}
+  .tools.open > .gear .gi{display:none}
+  .wrap{position:relative}
+  .vpanel{position:relative;z-index:21}
+  .vpanel select{width:100%}
+  /* the course map hides behind one slim line; tap it to open the map */
+  .mini{display:flex;align-items:center;gap:8px;width:100%;font:inherit;text-align:left;background:var(--paper);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:8px 12px;cursor:pointer}
+  .mini .mt{font:600 17px var(--font-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .mini .ms{color:var(--muted);font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  .mini .mp{color:var(--go);letter-spacing:2px;white-space:nowrap}
+  .mini .mv{color:var(--muted);transition:transform .2s}
+  body.map-open .mini .mv{transform:rotate(180deg)}
+  .course,.stagebar{display:none}
+  body.map-open .course,body.levelup .course{display:grid}
+  body.map-open .stagebar{display:flex}
+  /* the sentence is the main thing on screen */
+  .board{padding:14px 12px;gap:10px;border-radius:20px}
+  .task{font-size:16px}
+  .sentence{font-size:27px;gap:8px 10px;min-height:0}
+  .tight{margin-left:-10px}
+  .slot{width:calc((100% - 20px) / 3);max-width:120px;min-height:0}
+  .slot .w{font-size:16px}
+  .blank{font-size:26px}
+  .bank{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+  .bank-head p{display:none}
+  .card .w{font-size:19px}
+  .card.act .w{font-size:16px}
+  /* buttons live in a bar fixed to the bottom, in reach of a thumb */
+  #feedback{position:fixed;left:0;right:0;bottom:0;z-index:15;margin:0;background:var(--paper);box-shadow:0 -6px 20px var(--shadow);border-radius:18px 18px 0 0;
+    padding:10px max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));gap:8px;min-height:0}
+  #feedback:empty{display:none}
+  #feedback .btn{flex:1 1 auto;padding:12px 14px;font-size:17px}
+  #feedback .btn.small{flex:0 0 auto}
+  #feedback .sayit{font-size:20px;padding:8px 12px}
+  #feedback .msg{font-size:16px}
+  #feedback .listen-note{flex-basis:100%;text-align:center;font-size:14px}
+  .heard{font-size:15px}
+  .flash .emo{font-size:96px}
+  .celebrate .big{font-size:48px}
+  .celebrate h2{font-size:26px}
+}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <header class="top">
     <div>
       <h1>What's the Weather?</h1>
       <p class="sub">A weather course: learn it, build it, hear it, say it, write it.</p>
     </div>
-    <div class="tools">
+    <div class="tools" id="tools">
       <button class="tool stop" id="stopBtn" hidden>■ Stop</button>
+      <button class="tool gear" id="gearBtn" aria-expanded="false" aria-label="Settings"><span class="gi">⚙️</span></button>
       <button class="tool" id="voiceBtn" aria-pressed="true">🔊 Sound on</button>
       <button class="tool" id="pickBtn" aria-expanded="false" aria-controls="vpanel">🗣️ Voice</button>
       <button class="tool" id="hoverBtn" aria-pressed="true">👆 Read on hover</button>
@@ -220,6 +289,7 @@ body.he-on .he-chip{display:block}
 
   <nav class="course" id="course" aria-label="Course map"></nav>
   <p class="course-cap" id="courseCap"></p>
+  <button class="mini" id="mini" aria-expanded="false" aria-controls="course"></button>
   <div class="stagebar">
     <nav class="stages" id="stages" aria-label="Stages"></nav>
     <button class="reset" id="resetBtn">↺ New student</button>
@@ -638,6 +708,12 @@ function renderCourse(){
   $('marker').style.left = `${(at + 0.5) / n * 100}%`;
   $('fill').style.width = `${Math.min(cur, LEVELS.length) / (n - 1) * 100}%`;
   $('courseCap').textContent = `You are here: ${levelTitle(LV)}` + (teacher ? ' · Admin mode: everything is open' : '');
+  const st = stagesOf(LV);
+  $('mini').innerHTML = `<span class="mt">${LEVELS[LV].type === 'part' ? 'Part ' + (LEVELS[LV].p + 1) + ' · ' + LEVELS[LV].name : LEVELS[LV].name}</span>`
+    + `<span class="ms">${st[ST] ? st[ST].name : ''}</span>`
+    + `<span class="mp" aria-hidden="true">${st.map((_, i) => isDone(LV, i) ? '●' : i === ST ? '◉' : '○').join('')}</span><span class="mv" aria-hidden="true">▾</span>`;
+  $('mini').setAttribute('aria-label', `${levelTitle(LV)}, ${st[ST] ? st[ST].name.replace(/^\S+\s/, '') : ''}. Show the course map`);
+  document.body.classList.toggle('levelup', !!(S && S.finished && S.levelUp));
 }
 function confetti(){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -1077,6 +1153,7 @@ function blankEl(b, bi){
       }
     });
     inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); checkWriting(); } });
+    inp.addEventListener('focus', () => { if(isPhone()) setTimeout(() => inp.scrollIntoView({ block:'center', behavior:'smooth' }), 350); });
     col.appendChild(inp);
     if(b.state === 'almost') col.insertAdjacentHTML('beforeend', `<span class="fix" aria-label="Spelled ${b.ans}">${missedLetters(b.typed, b.ans)}</span>`);
     if(b.state === 'copy') col.insertAdjacentHTML('beforeend', `<span class="fix copy">${b.ans}</span>`);
@@ -1316,8 +1393,32 @@ $('resetBtn').onclick = () => {
   done = {}; store.set('done', done); startStage(0, 0, false);
 };
 
+/* ---------- phone layout helpers ---------- */
+const isPhone = () => matchMedia('(max-width: 640px)').matches;
+$('gearBtn').onclick = () => {
+  const open = !$('tools').classList.contains('open');
+  $('tools').classList.toggle('open', open); $('gearBtn').setAttribute('aria-expanded', open);
+  if(!open){ $('vpanel').hidden = true; $('pickBtn').setAttribute('aria-expanded', false); }
+};
+$('mini').onclick = () => {
+  const open = !document.body.classList.contains('map-open');
+  document.body.classList.toggle('map-open', open); $('mini').setAttribute('aria-expanded', open);
+};
+/* close the map after choosing a stop or stage on a phone */
+document.addEventListener('click', e => {
+  if(isPhone() && e.target.closest('#course .stn[data-lv], #stages .stage') && document.body.classList.contains('map-open')){
+    setTimeout(() => { document.body.classList.remove('map-open'); $('mini').setAttribute('aria-expanded', false); }, 150);
+  }
+});
+/* the bottom bar is fixed on phones: leave room for it under the page */
+if('ResizeObserver' in window){
+  new ResizeObserver(() => document.documentElement.style.setProperty('--barH', $('feedback').offsetHeight + 'px')).observe($('feedback'));
+}
+
 syncTools();
 fillVoicePanel();
 buildCourse();
 { const cur = currentLevel(), lv = cur >= LEVELS.length ? 0 : cur; startStage(lv, firstOpenStage(lv), false); }
 </script>
+</body>
+</html>
